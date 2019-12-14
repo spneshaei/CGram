@@ -25,6 +25,7 @@
 /* Begin PBXFileReference section */
 		4249D17623A38CAB002E6EAC /* CGram */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CGram; sourceTree = BUILT_PRODUCTS_DIR; };
 		4249D17923A38CAB002E6EAC /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		4249D18023A3B410002E6EAC /* testing.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testing.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				4249D17923A38CAB002E6EAC /* main.c */,
+				4249D18023A3B410002E6EAC /* testing.c */,
 			);
 			path = CGram;
 			sourceTree = "<group>";
