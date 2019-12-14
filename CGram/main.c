@@ -35,10 +35,14 @@
 #define KEY_LEFT    0x0107
 #define KEY_RIGHT   0x0108
 
+char asciiArt[5][200];
+
 void welcomePage(void);
 void loginPage(void);
 void mainPage(void);
 void channelPage(void);
+void showCursor(void);
+void resetFont(void);
 
 char username[100];
 char token[200];
@@ -78,6 +82,11 @@ static int getch() {
     tcsetattr(0, TCSANOW, &term);
     c = getchar();
     tcsetattr(0, TCSANOW, &oterm);
+    if (c == 27) {
+        showCursor();
+        resetFont();
+        exit(0);
+    }
     return c;
 }
 
@@ -786,8 +795,12 @@ void welcomePage() {
     // TODO: h
     system("clear");
     hideCursor();
-    printf("\n\n\n\n\n");
     makeBoldRed();
+    printf("\n\n");
+    for (int i = 0; i < 5; i++) {
+        printf("%s", asciiArt[i]);
+    }
+    printf("\n\n\n");
     printStringCentered("Welcome to CGram");
 //    makeRed();
     printf("\n\n");
@@ -853,13 +866,19 @@ void welcomePage() {
     
 }
 
+void initializeAsciiArt() {
+    strcpy(asciiArt[0], " ______     ______     ______     ______     __    __    \n");
+    strcpy(asciiArt[1], "/\\  ___\\   /\\  ___\\   /\\  == \\   /\\  __ \\   /\\ \"-./  \\   \n");
+    strcpy(asciiArt[2], "\\ \\ \\____  \\ \\ \\__ \\  \\ \\  __<   \\ \\  __ \\  \\ \\ \\-./\\ \\  \n");
+    strcpy(asciiArt[3], " \\ \\_____\\  \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\ \\_\\ \n");
+    strcpy(asciiArt[4], "  \\/_____/   \\/_____/   \\/_/ /_/   \\/_/\\/_/   \\/_/  \\/_/ \n");
+}
+
 int main (int argc, const char * argv[]) {
     // IDEA: command line arguments to facilitate using app
     // IDEA: Password strength
     // IDEA: Activity Indicator
-    // BUG: ESC when working with app works badly...
-    // BUG: press r to return or t to retry... if pressed any other key, then we could do nothing to get rid of the situation!!
-    // UPTO: Asciiart!
+    // FEATURE: esc exits app
     
     
     
@@ -869,6 +888,7 @@ int main (int argc, const char * argv[]) {
     //system("clear");//system("@cls||clear");
     setupTerminalDimensions();
     atexit(showCursor);
+    initializeAsciiArt();
     
     welcomePage();
     
