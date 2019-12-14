@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include "cJSON.h"
 
 #define cursorforward(x) printf("\033[%dC", (x))
 #define cursorbackward(x) printf("\033[%dD", (x))
@@ -45,7 +46,7 @@ void showCursor(void);
 void resetFont(void);
 
 char username[100];
-char token[200];
+char token[400];
 char channel[100];
 
 typedef struct {
@@ -262,48 +263,83 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     printStringCentered(channel);
 }
 
-void loginServer(char username[], char password[], char *token) { // returns token and -1 if error
-    // TODO: Server login
+int sendRequestToServer(char *request, char *result) {  // returns -1 if error
+    // TODO: Do something!
+    return 0;
+}
+
+int loginServer(char username[], char password[]) { // returns token and -1 if error
+    char req[300] = {'\0'}, result[500];
+    sprintf(req, "login %s, %s", username, password);
+    sendRequestToServer(req, result);
+    // TODO: Parse result, set token and return good value
     strcpy(token, "0");
+    return -1;
 }
 
 int registerServer(char username[], char password[]) { // returns -1 if error
-    // TODO: Server register
+    char req[300] = {'\0'}, result[100];
+    sprintf(req, "register %s, %s", username, password);
+    sendRequestToServer(req, result);
+    // TODO: Check result and return good value
     return -1;
 }
 
 int createChannelServer() { // returns -1 if error
-    // TODO: Channel creation
+    // TODO: IMPORTANT: It seems it doesn't do normal things as findChannel...
+    char req[300] = {'\0'}, result[100];
+    sprintf(req, "create channel %s, %s", channel, token);
+    sendRequestToServer(req, result);
+    // TODO: Check result and return good value
     return -1;
 }
 
 int findChannelServer() { // returns -1 if error
-    // TODO: Channel finding
-    return 0;
+    char req[300] = {'\0'}, result[500];
+    sprintf(req, "join channel %s, %s", channel, token);
+    sendRequestToServer(req, result);
+    // TODO: Parse result, set global arrays and return good value
+    return -1;
 }
 
 int logoutServer() { // returns -1 if error
-    // TODO: Logging out
-    return 0;
+    // TODO: IMPORTANT: It seems it doesn't do normal things as findChannel...
+    char req[300] = {'\0'}, result[100];
+    sprintf(req, "logout %s", token);
+    sendRequestToServer(req, result);
+    // TODO: Check result and return good value
+    return -1;
 }
 
 int reloadMembersServer() { // returns -1 if error
-    // TODO: members
+    char req[300] = {'\0'}, result[500];
+    sprintf(req, "channel members %s", token);
+    sendRequestToServer(req, result);
+    // TODO: Parse result, set global arrays and return good value
     return -1;
 }
 
 int reloadMessagesServer() { // returns -1 if error
-    // TODO: refreshing
-    return 0;
+    char req[300] = {'\0'}, result[1000];
+    sprintf(req, "refresh %s", token);
+    sendRequestToServer(req, result);
+    // TODO: Parse result, set global arrays and return good value
+    return -1;
 }
 
 int sendMessageServer(char message[]) { // returns -1 if error
-    // TODO: sending
+    char req[300] = {'\0'}, result[100];
+    sprintf(req, "send %s, %s", message, token);
+    sendRequestToServer(req, result);
+    // TODO: Check result and return good value
     return -1;
 }
 
 int leaveChannelServer() { // returns -1 if error
-    // TODO: leaving
+    char req[300] = {'\0'}, result[100];
+    sprintf(req, "leave %s", token);
+    sendRequestToServer(req, result);
+    // TODO: Check result and return good value
     return -1;
 }
 
@@ -770,10 +806,9 @@ void loginPage() {
     printStringCentered("Logging in...");
     printf("\n\n\n");
     
-    char token[100];
-    loginServer(username, password, token);
+    int res = loginServer(username, password);
     
-    if (strcmp(token, "-1") == 0) {
+    if (strcmp(token, "-1") == 0 || res == -1) {
         printStringCentered("Login failed. Press 't' to retry or 'r' to return.");
         while (1) {
             char c = getch();
