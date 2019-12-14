@@ -132,6 +132,27 @@ static int kbget(){
     return (c == KEY_ESCAPE) ? kbesc() : c;
 }
 
+int getWords(char *base, char target[10][200]) {
+    int n = 0, i, j = 0;
+    for (i = 0; ; i++) {
+        if (base[i] != ' ') {
+            target[n][j++] = base[i];
+        } else {
+            target[n][j++] = '\0';
+            n++;
+            j = 0;
+        }
+        if (base[i] == '\0') break;
+    }
+    return n;
+}
+
+int strStartsWith(const char *pre, const char *str) {
+    size_t lenpre = strlen(pre),
+    lenstr = strlen(str);
+    return lenstr < lenpre ? 0 : memcmp(pre, str, lenpre) == 0;
+}
+
 void exitCtrlCHandler(int s) {
     exit(1);
 }
@@ -224,11 +245,11 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     resetFont();
     printf("\n\n\n");
     printStringCentered("Enter the channel you want to join below:");
-    printf("\n");
-    printStringCentered("If you want to create a new channel, type 'new'.");
-    printf("\n");
-    printStringCentered("To log out from your account, type 'logout'.");
     printf("\n\n");
+    printStringCentered("To create a new channel, type 'new' and then its name after a space.");
+    printf("\n\n");
+    printStringCentered("To log out from your account, type 'logout'.");
+    printf("\n\n\n");
     printStringCentered(channel);
 }
 
@@ -239,6 +260,11 @@ void loginServer(char username[], char password[], char *token) { // returns tok
 
 int registerServer(char username[], char password[]) { // returns -1 if error
     // TODO: Server register
+    return -1;
+}
+
+int createChannelServer() { // returns -1 if error
+    // TODO: Channel creation
     return -1;
 }
 
@@ -302,10 +328,14 @@ void chatPage() {
         resetFont();
         printf("%s\n", m.content);
     }
+    showCursor();
+    makeRed();
     printf("\n\nType your message ==> ");
+    resetFont();
     char s[200];
     scanf("%s", s);
     printf("\n\n");
+    hideCursor();
     if (strcmp(s, "reload") == 0) {
         printStringCentered("Reloading the messages...");
         printf("\n\n");
@@ -407,11 +437,11 @@ void mainPage() {
     resetFont();
     printf("\n\n\n");
     printStringCentered("Enter the channel you want to join below:");
-    printf("\n");
-    printStringCentered("If you want to create a new channel, type 'new'.");
-    printf("\n");
-    printStringCentered("To log out from your account, type 'logout'.");
     printf("\n\n");
+    printStringCentered("To create a new channel, type 'new' and then its name after a space.");
+    printf("\n\n");
+    printStringCentered("To log out from your account, type 'logout'.");
+    printf("\n\n\n");
     int shouldContinue = 1;
     while (shouldContinue) {
         char c = getch();
@@ -433,8 +463,36 @@ void mainPage() {
                     loginPage();
                     return;
                 }
-            } else if (strcmp(channel, "new") == 0) {
-                // TODO: New Channel
+            } else if (strStartsWith("new ", channel)) {
+                char target[10][200];
+                getWords(channel, target);
+                strcpy(channel, target[1]);
+                if (strcmp(channel, "") == 0) {
+                    printStringCentered("Invalid channel name. Press 't' to retry.");
+                    char c = getch();
+                    if (c == 't') {
+                        mainPage();
+                        return;
+                    }
+                }
+                printStringCentered("Creating the channel...");
+                printf("\n\n\n");
+                
+                int result1 = createChannelServer();
+                // TODO: should be any result for joinChannel also here?
+                int result2 = reloadMessagesServer();
+                
+                if (result1 == -1 || result2 == -1) {
+                    printStringCentered("Creating the channel failed. Press 't' to retry.");
+                    char c = getch();
+                    if (c == 't') {
+                        mainPage();
+                        return;
+                    }
+                } else {
+                    chatPage();
+                    return;
+                }
             }
             break;
         } else {
