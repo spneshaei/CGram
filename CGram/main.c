@@ -270,12 +270,12 @@ int createChannelServer() { // returns -1 if error
 
 int findChannelServer() { // returns -1 if error
     // TODO: Channel finding
-    return -1;
+    return 0;
 }
 
 int logoutServer() { // returns -1 if error
     // TODO: Logging out
-    return -1;
+    return 0;
 }
 
 int reloadMembersServer() { // returns -1 if error
@@ -285,7 +285,7 @@ int reloadMembersServer() { // returns -1 if error
 
 int reloadMessagesServer() { // returns -1 if error
     // TODO: refreshing
-    return -1;
+    return 0;
 }
 
 int sendMessageServer(char message[]) { // returns -1 if error
@@ -342,17 +342,21 @@ void chatPage() {
         int result = reloadMessagesServer();
         if (result == -1) {
             printStringCentered("Reloading failed. Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         } else {
             printStringCentered("Reloading successful. Press 's' to show new messages.");
-            char c = getch();
-            if (c == 's') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 's') {
+                    chatPage();
+                    return;
+                }
             }
         }
     } else if (strcmp(s, "members") == 0) {
@@ -361,10 +365,12 @@ void chatPage() {
         int result = reloadMembersServer();
         if (result == -1) {
             printStringCentered("Finding failed. Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         } else {
             printStringCentered("All Channel Members:");
@@ -378,10 +384,12 @@ void chatPage() {
             }
             printf("\n\n");
             printStringCentered("Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         }
     } else if (strcmp(s, "leave") == 0) {
@@ -390,10 +398,12 @@ void chatPage() {
         int result = leaveChannelServer();
         if (result == -1) {
             printStringCentered("Leaving failed. Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         } else {
             mainPage();
@@ -406,17 +416,21 @@ void chatPage() {
         int result2 = reloadMessagesServer();
         if (result1 == -1 || result2 == -1) {
             printStringCentered("Sending failed. Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         } else {
             printStringCentered("Message sent. Press 'r' to return.");
-            char c = getch();
-            if (c == 'r') {
-                chatPage();
-                return;
+            while (1) {
+                char c = getch();
+                if (c == 'r') {
+                    chatPage();
+                    return;
+                }
             }
         }
     }
@@ -447,15 +461,18 @@ void mainPage() {
         char c = getch();
         if (c == '\n') {
             if (strcmp(channel, "logout") == 0) {
+                printf("\n\n");
                 printStringCentered("Logging out...");
                 printf("\n\n");
                 int res = logoutServer();
                 if (res == -1) {
                     printStringCentered("Logout failed. Press 't' to retry.");
-                    char c = getch();
-                    if (c == 't') {
-                        mainPage();
-                        return;
+                    while (1) {
+                        char c = getch();
+                        if (c == 't') {
+                            mainPage();
+                            return;
+                        }
                     }
                 } else {
                     shouldContinue = 0;
@@ -464,15 +481,18 @@ void mainPage() {
                     return;
                 }
             } else if (strStartsWith("new ", channel)) {
+                printf("\n\n");
                 char target[10][200];
                 getWords(channel, target);
                 strcpy(channel, target[1]);
                 if (strcmp(channel, "") == 0) {
                     printStringCentered("Invalid channel name. Press 't' to retry.");
-                    char c = getch();
-                    if (c == 't') {
-                        mainPage();
-                        return;
+                    while (1) {
+                        char c = getch();
+                        if (c == 't') {
+                            mainPage();
+                            return;
+                        }
                     }
                 }
                 printStringCentered("Creating the channel...");
@@ -484,10 +504,12 @@ void mainPage() {
                 
                 if (result1 == -1 || result2 == -1) {
                     printStringCentered("Creating the channel failed. Press 't' to retry.");
-                    char c = getch();
-                    if (c == 't') {
-                        mainPage();
-                        return;
+                    while (1) {
+                        char c = getch();
+                        if (c == 't') {
+                            mainPage();
+                            return;
+                        }
                     }
                 } else {
                     chatPage();
@@ -496,10 +518,14 @@ void mainPage() {
             }
             break;
         } else {
-            char oneCharArr[2];
-            oneCharArr[0] = c;
-            oneCharArr[1] = '\0';
-            strcat(channel, oneCharArr);
+            if (c == '\x7f' || c == 8) {
+                channel[strlen(channel) - 1] = '\0';
+            } else {
+                char oneCharArr[2];
+                oneCharArr[0] = c;
+                oneCharArr[1] = '\0';
+                strcat(channel, oneCharArr);
+            }
             mainPage_printUntilSpecifiedChannel(channel);
         }
     }
@@ -508,10 +534,12 @@ void mainPage() {
     
     if (strcmp(channel, "") == 0) {
         printStringCentered("Invalid channel name. Press 't' to retry.");
-        char c = getch();
-        if (c == 't') {
-            mainPage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                mainPage();
+                return;
+            }
         }
     }
     
@@ -524,10 +552,12 @@ void mainPage() {
     
     if (result1 == -1 || result2 == -1) {
         printStringCentered("Looking for the channel failed. Press 't' to retry.");
-        char c = getch();
-        if (c == 't') {
-            mainPage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                mainPage();
+                return;
+            }
         }
     } else {
         chatPage();
@@ -559,10 +589,14 @@ void registerPage() {
             }
             break;
         } else {
-            char oneCharArr[2];
-            oneCharArr[0] = c;
-            oneCharArr[1] = '\0';
-            strcat(username, oneCharArr);
+            if (c == '\x7f' || c == 8) {
+                username[strlen(username) - 1] = '\0';
+            } else {
+                char oneCharArr[2];
+                oneCharArr[0] = c;
+                oneCharArr[1] = '\0';
+                strcat(username, oneCharArr);
+            }
             registerPage_printUntilSpecifiedUsername(username);
         }
     }
@@ -571,13 +605,15 @@ void registerPage() {
     
     if (strcmp(username, "") == 0) {
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            registerPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                registerPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     }
     
@@ -600,13 +636,15 @@ void registerPage() {
     
     if (strcmp(password, "") == 0) {
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            registerPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                registerPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     }
     
@@ -617,13 +655,15 @@ void registerPage() {
     
     if (result == -1) {
         printStringCentered("Registration failed. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            registerPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                registerPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     } else {
         printStringCentered("Registration succesful! Press any key to return.");
@@ -659,10 +699,14 @@ void loginPage() {
             }
             break;
         } else {
-            char oneCharArr[2];
-            oneCharArr[0] = c;
-            oneCharArr[1] = '\0';
-            strcat(username, oneCharArr);
+            if (c == '\x7f' || c == 8) {
+                username[strlen(username) - 1] = '\0';
+            } else {
+                char oneCharArr[2];
+                oneCharArr[0] = c;
+                oneCharArr[1] = '\0';
+                strcat(username, oneCharArr);
+            }
             loginPage_printUntilSpecifiedUsername(username);
         }
     }
@@ -671,13 +715,15 @@ void loginPage() {
     
     if (strcmp(username, "") == 0) {
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            loginPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                loginPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     }
     
@@ -700,13 +746,15 @@ void loginPage() {
     
     if (strcmp(password, "") == 0) {
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            loginPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                loginPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     }
     
@@ -718,13 +766,15 @@ void loginPage() {
     
     if (strcmp(token, "-1") == 0) {
         printStringCentered("Login failed. Press 't' to retry or 'r' to return.");
-        char c = getch();
-        if (c == 't') {
-            loginPage();
-            return;
-        } else if (c == 'r') {
-            welcomePage();
-            return;
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                loginPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
         }
     } else {
         mainPage();
@@ -809,8 +859,7 @@ int main (int argc, const char * argv[]) {
     // IDEA: Activity Indicator
     // BUG: ESC when working with app works badly...
     // BUG: press r to return or t to retry... if pressed any other key, then we could do nothing to get rid of the situation!!
-    // BUG: pressing backspace while typing out username and stuff on login and register and... is sooo bad!
-    // UPTO: New channel interface should be made. and, asciiart!
+    // UPTO: Asciiart!
     
     
     
