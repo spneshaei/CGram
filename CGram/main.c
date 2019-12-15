@@ -17,6 +17,7 @@
  
  */
 
+
 #include <sys/ioctl.h>
 #include <stdio.h>
 #include <termios.h>
@@ -25,6 +26,14 @@
 #include <string.h>
 #include <signal.h>
 #include "cJSON.h"
+#include <sys/socket.h>
+#include <arpa/inet.h>
+
+#define MAX 500
+#define PORT 12345
+#define SA struct sockaddr
+
+int server_socket;
 
 #define cursorforward(x) printf("\033[%dC", (x))
 #define cursorbackward(x) printf("\033[%dD", (x))
@@ -66,9 +75,9 @@ Message messages[200];
 static struct termios term, oterm;
 
 static int getch(void);
-static int kbhit(void);
-static int kbesc(void);
-static int kbget(void);
+//static int kbhit(void);
+//static int kbesc(void);
+//static int kbget(void);
 
 int terminalColumns = 80, terminalLines = 24;
 
@@ -91,56 +100,56 @@ static int getch() {
     return c;
 }
 
-static int kbhit(){
-    int c = 0;
-    
-    tcgetattr(0, &oterm);
-    memcpy(&term, &oterm, sizeof(term));
-    term.c_lflag &= ~(ICANON | ECHO);
-    term.c_cc[VMIN] = 0;
-    term.c_cc[VTIME] = 1;
-    tcsetattr(0, TCSANOW, &term);
-    c = getchar();
-    tcsetattr(0, TCSANOW, &oterm);
-    if (c != -1) ungetc(c, stdin);
-    return ((c != -1) ? 1 : 0);
-}
+//static int kbhit(){
+//    int c = 0;
+//
+//    tcgetattr(0, &oterm);
+//    memcpy(&term, &oterm, sizeof(term));
+//    term.c_lflag &= ~(ICANON | ECHO);
+//    term.c_cc[VMIN] = 0;
+//    term.c_cc[VTIME] = 1;
+//    tcsetattr(0, TCSANOW, &term);
+//    c = getchar();
+//    tcsetattr(0, TCSANOW, &oterm);
+//    if (c != -1) ungetc(c, stdin);
+//    return ((c != -1) ? 1 : 0);
+//}
 
-static int kbesc(){
-    int c;
-    
-    if (!kbhit()) return KEY_ESCAPE;
-    c = getch();
-    if (c == '[') {
-        switch (getch()) {
-            case 'A':
-                c = KEY_UP;
-                break;
-            case 'B':
-                c = KEY_DOWN;
-                break;
-            case 'C':
-                c = KEY_LEFT;
-                break;
-            case 'D':
-                c = KEY_RIGHT;
-                break;
-            default:
-                c = 0;
-                break;
-        }
-    } else {
-        c = 0;
-    }
-    if (c == 0) while (kbhit()) getch();
-    return c;
-}
+//static int kbesc(){
+//    int c;
+//
+//    if (!kbhit()) return KEY_ESCAPE;
+//    c = getch();
+//    if (c == '[') {
+//        switch (getch()) {
+//            case 'A':
+//                c = KEY_UP;
+//                break;
+//            case 'B':
+//                c = KEY_DOWN;
+//                break;
+//            case 'C':
+//                c = KEY_LEFT;
+//                break;
+//            case 'D':
+//                c = KEY_RIGHT;
+//                break;
+//            default:
+//                c = 0;
+//                break;
+//        }
+//    } else {
+//        c = 0;
+//    }
+//    if (c == 0) while (kbhit()) getch();
+//    return c;
+//}
 
-static int kbget(){
-    int c;
-    c = getch();
-    return (c == KEY_ESCAPE) ? kbesc() : c;
-}
+//static int kbget(){
+//    int c;
+//    c = getch();
+//    return (c == KEY_ESCAPE) ? kbesc() : c;
+//}
 
 int getWords(char *base, char target[10][200]) {
     int n = 0, i, j = 0;
@@ -223,9 +232,9 @@ void loginPage_printUntilSpecifiedUsername(char *username) {
     printf("\n\n\n\n\n");
     makeBoldRed();
     printStringCentered("Login to CGram");
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
+    resetFont();
     printf("\n\n");
     printStringCentered(username);
 }
@@ -236,9 +245,9 @@ void registerPage_printUntilSpecifiedUsername(char *username) {
     printf("\n\n\n\n\n");
     makeBoldRed();
     printStringCentered("Register in CGram");
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
+    resetFont();
     printf("\n\n");
     printStringCentered(username);
 }
@@ -252,7 +261,6 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     char str1[200] = {'\0'};
     sprintf(str1, "Welcome, %s!", username);
     printStringCentered(str1);
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter the channel you want to join below:");
     printf("\n\n");
@@ -260,20 +268,74 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     printf("\n\n");
     printStringCentered("To log out from your account, type 'logout'.");
     printf("\n\n\n");
+    resetFont();
     printStringCentered(channel);
 }
 
-int sendRequestToServer(char *request, char *result) {  // returns -1 if error
-    // TODO: Do something!
+int sendRequestToServer(char *request, char *result) {  // returns -1 if no result from the server
+    unsigned long requestLen = strlen(request);
+    char r[requestLen];
+    for (int i = 0; i <= requestLen; i++) {
+        if (request[i] == '\0') {
+            break;
+        }
+        r[i] = request[i];
+    }
+    
+    int clientSocket;
+    struct sockaddr_in servaddr;
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(PORT);
+    
+    connect(clientSocket, (SA*)&servaddr, sizeof(servaddr));
+    send(server_socket, r, sizeof(r), 0);
+    recv(clientSocket, result, sizeof(result), 0);
+    shutdown(clientSocket, SHUT_RDWR);
+    
+    if (strcmp(result, "") == 0) {
+        return -1;
+    }
     return 0;
 }
 
-int loginServer(char username[], char password[]) { // returns token and -1 if error
+int loginServer(char username[], char password[]) { // returns -1 if error
     char req[300] = {'\0'}, result[500];
     sprintf(req, "login %s, %s", username, password);
     sendRequestToServer(req, result);
-    // TODO: Parse result, set token and return good value
-    strcpy(token, "0");
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        strcpy(token, "-1");
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            strcpy(token, "-1");
+            return -1;
+        } else if (strcmp(type->valuestring, "AuthToken") == 0) {
+            const cJSON *_token = cJSON_GetObjectItemCaseSensitive(json, "content");
+            if (cJSON_IsString(_token) && (_token->valuestring != NULL)) {
+                strcpy(token, _token->valuestring);
+                cJSON_Delete(json);
+                return 0;
+            } else {
+                cJSON_Delete(json);
+                strcpy(token, "-1");
+                return -1;
+            }
+        } else {
+            cJSON_Delete(json);
+            strcpy(token, "-1");
+            return -1;
+        }
+    }
+    cJSON_Delete(json);
+    strcpy(token, "-1");
     return -1;
 }
 
@@ -320,10 +382,45 @@ int reloadMembersServer() { // returns -1 if error
 }
 
 int reloadMessagesServer() { // returns -1 if error
+    for (int i = 0; i < messagesCount; i++) {
+        strcpy(messages[i].content, "");
+        strcpy(messages[i].sender, "");
+    }
+    messagesCount = 0;
     char req[300] = {'\0'}, result[1000];
     sprintf(req, "refresh %s", token);
     sendRequestToServer(req, result);
-    // TODO: Parse result, set global arrays and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+     if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+         if (strcmp(type->valuestring, "Error") == 0) {
+             cJSON_Delete(json);
+             return -1;
+         } else if (strcmp(type->valuestring, "List") == 0) {
+             const cJSON *content = cJSON_GetObjectItemCaseSensitive(json, "content");
+             const cJSON *eachMessage = NULL;
+             cJSON_ArrayForEach(eachMessage, content) {
+                 const cJSON *eachMessageSender = cJSON_GetObjectItemCaseSensitive(eachMessage, "sender");
+                 const cJSON *eachMessageContent = cJSON_GetObjectItemCaseSensitive(eachMessage, "content");
+                 if (cJSON_IsString(eachMessageSender) && (eachMessageSender->valuestring != NULL)
+                     &&
+                     cJSON_IsString(eachMessageContent) && (eachMessageContent->valuestring != NULL)) {
+                     Message m;
+                     strcpy(m.sender, eachMessageSender->valuestring);
+                     strcpy(m.content, eachMessageContent->valuestring);
+                     messages[messagesCount] = m;
+                     messagesCount++;
+                 }
+             }
+         } else {
+             cJSON_Delete(json);
+             return -1;
+         }
+     }
     return -1;
 }
 
@@ -382,11 +479,15 @@ void chatPage() {
     printf("\n\n");
     hideCursor();
     if (strcmp(s, "reload") == 0) {
+        makeBoldRed();
         printStringCentered("Reloading the messages...");
+        resetFont();
         printf("\n\n");
         int result = reloadMessagesServer();
         if (result == -1) {
+            makeBoldRed();
             printStringCentered("Reloading failed. Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -395,7 +496,9 @@ void chatPage() {
                 }
             }
         } else {
+            makeBoldRed();
             printStringCentered("Reloading successful. Press 's' to show new messages.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 's') {
@@ -405,11 +508,15 @@ void chatPage() {
             }
         }
     } else if (strcmp(s, "members") == 0) {
+        makeBoldRed();
         printStringCentered("Finding all the members...");
+        resetFont();
         printf("\n\n");
         int result = reloadMembersServer();
         if (result == -1) {
+            makeBoldRed();
             printStringCentered("Finding failed. Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -418,17 +525,23 @@ void chatPage() {
                 }
             }
         } else {
+            makeBoldRed();
             printStringCentered("All Channel Members:");
+            resetFont();
             printf("\n\n");
             for (int i = 0; i < membersCount; i++) {
-                if (i % 2 == 0) {
-                    printf("%s\t", members[i].name);
-                } else {
-                    printf("%s\n", members[i].name);
-                }
+                printStringCentered(members[i].name);
+                printf("\n");
+//                if (i % 2 == 0) {
+//                    printf("%s\t", members[i].name);
+//                } else {
+//                    printf("%s\n", members[i].name);
+//                }
             }
             printf("\n\n");
+            makeBoldRed();
             printStringCentered("Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -438,11 +551,15 @@ void chatPage() {
             }
         }
     } else if (strcmp(s, "leave") == 0) {
+        makeBoldRed();
         printStringCentered("Leaving the channel...");
+        resetFont();
         printf("\n\n");
         int result = leaveChannelServer();
         if (result == -1) {
+            makeBoldRed();
             printStringCentered("Leaving failed. Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -455,12 +572,16 @@ void chatPage() {
             return;
         }
     }else {
+        makeBoldRed();
         printStringCentered("Sending the message...");
+        resetFont();
         printf("\n\n");
         int result1 = sendMessageServer(s);
         int result2 = reloadMessagesServer();
         if (result1 == -1 || result2 == -1) {
+            makeBoldRed();
             printStringCentered("Sending failed. Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -469,7 +590,9 @@ void chatPage() {
                 }
             }
         } else {
+            makeBoldRed();
             printStringCentered("Message sent. Press 'r' to return.");
+            resetFont();
             while (1) {
                 char c = getch();
                 if (c == 'r') {
@@ -493,7 +616,6 @@ void mainPage() {
     char str1[200] = {'\0'};
     sprintf(str1, "Welcome, %s!", username);
     printStringCentered(str1);
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter the channel you want to join below:");
     printf("\n\n");
@@ -501,17 +623,22 @@ void mainPage() {
     printf("\n\n");
     printStringCentered("To log out from your account, type 'logout'.");
     printf("\n\n\n");
+    resetFont();
     int shouldContinue = 1;
     while (shouldContinue) {
         char c = getch();
         if (c == '\n') {
             if (strcmp(channel, "logout") == 0) {
                 printf("\n\n");
+                makeBoldRed();
                 printStringCentered("Logging out...");
+                resetFont();
                 printf("\n\n");
                 int res = logoutServer();
                 if (res == -1) {
+                    makeBoldRed();
                     printStringCentered("Logout failed. Press 't' to retry.");
+                    resetFont();
                     while (1) {
                         char c = getch();
                         if (c == 't') {
@@ -531,7 +658,9 @@ void mainPage() {
                 getWords(channel, target);
                 strcpy(channel, target[1]);
                 if (strcmp(channel, "") == 0) {
+                    makeBoldRed();
                     printStringCentered("Invalid channel name. Press 't' to retry.");
+                    resetFont();
                     while (1) {
                         char c = getch();
                         if (c == 't') {
@@ -540,7 +669,9 @@ void mainPage() {
                         }
                     }
                 }
+                makeBoldRed();
                 printStringCentered("Creating the channel...");
+                resetFont();
                 printf("\n\n\n");
                 
                 int result1 = createChannelServer();
@@ -548,7 +679,9 @@ void mainPage() {
                 int result2 = reloadMessagesServer();
                 
                 if (result1 == -1 || result2 == -1) {
+                    makeBoldRed();
                     printStringCentered("Creating the channel failed. Press 't' to retry.");
+                    resetFont();
                     while (1) {
                         char c = getch();
                         if (c == 't') {
@@ -578,7 +711,9 @@ void mainPage() {
     printf("\n\n");
     
     if (strcmp(channel, "") == 0) {
+        makeBoldRed();
         printStringCentered("Invalid channel name. Press 't' to retry.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -588,15 +723,18 @@ void mainPage() {
         }
     }
     
-    
+    makeBoldRed();
     printStringCentered("Looking for the channel...");
+    resetFont();
     printf("\n\n\n");
     
     int result1 = findChannelServer();
     int result2 = reloadMessagesServer();
     
     if (result1 == -1 || result2 == -1) {
+        makeBoldRed();
         printStringCentered("Looking for the channel failed. Press 't' to retry.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -618,9 +756,9 @@ void registerPage() {
     printf("\n\n\n\n\n");
     makeBoldRed();
     printStringCentered("Register in CGram");
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
+    resetFont();
     printf("\n\n");
     char username[100] = {'\0'}, password[100] = {'\0'};
     int shouldContinue = 1;
@@ -649,7 +787,9 @@ void registerPage() {
     printf("\n\n");
     
     if (strcmp(username, "") == 0) {
+        makeBoldRed();
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -662,7 +802,9 @@ void registerPage() {
         }
     }
     
+    makeBoldRed();
     printStringCentered("Enter your password below (it will be hidden for safety reasons):");
+    resetFont();
     
     shouldContinue = 1;
     while (shouldContinue) {
@@ -680,7 +822,9 @@ void registerPage() {
     printf("\n\n\n\n");
     
     if (strcmp(password, "") == 0) {
+        makeBoldRed();
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -693,13 +837,17 @@ void registerPage() {
         }
     }
     
+    makeBoldRed();
     printStringCentered("Registring...");
+    resetFont();
     printf("\n\n\n");
     
     int result = registerServer(username, password);
     
     if (result == -1) {
+        makeBoldRed();
         printStringCentered("Registration failed. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -711,7 +859,9 @@ void registerPage() {
             }
         }
     } else {
+        makeBoldRed();
         printStringCentered("Registration succesful! Press any key to return.");
+        resetFont();
         getch();
         welcomePage();
         return;
@@ -728,9 +878,9 @@ void loginPage() {
     printf("\n\n\n\n\n");
     makeBoldRed();
     printStringCentered("Login to CGram");
-    resetFont();
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
+    resetFont();
     printf("\n\n");
     char password[100] = {'\0'};
     int shouldContinue = 1;
@@ -759,7 +909,9 @@ void loginPage() {
     printf("\n\n");
     
     if (strcmp(username, "") == 0) {
+        makeBoldRed();
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -772,7 +924,9 @@ void loginPage() {
         }
     }
     
+    makeBoldRed();
     printStringCentered("Enter your password below (it will be hidden for safety reasons):");
+    resetFont();
     
     shouldContinue = 1;
     while (shouldContinue) {
@@ -790,7 +944,9 @@ void loginPage() {
     printf("\n\n\n\n");
     
     if (strcmp(password, "") == 0) {
+        makeBoldRed();
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -803,13 +959,17 @@ void loginPage() {
         }
     }
     
+    makeBoldRed();
     printStringCentered("Logging in...");
+    resetFont();
     printf("\n\n\n");
     
     int res = loginServer(username, password);
     
     if (strcmp(token, "-1") == 0 || res == -1) {
+        makeBoldRed();
         printStringCentered("Login failed. Press 't' to retry or 'r' to return.");
+        resetFont();
         while (1) {
             char c = getch();
             if (c == 't') {
@@ -909,6 +1069,22 @@ void initializeAsciiArt() {
     strcpy(asciiArt[4], "  \\/_____/   \\/_____/   \\/_/ /_/   \\/_/\\/_/   \\/_/  \\/_/ \n");
 }
 
+void setupSocket() {
+    int clientSocket;
+    struct sockaddr_in servaddr;
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    servaddr.sin_port = htons(PORT);
+    connect(clientSocket, (SA*)&servaddr, sizeof(servaddr));
+    server_socket = clientSocket;
+}
+
+void endSocket() {
+    shutdown(server_socket, SHUT_RDWR);
+}
+
 int main (int argc, const char * argv[]) {
     // IDEA: command line arguments to facilitate using app
     // IDEA: Password strength
@@ -921,6 +1097,16 @@ int main (int argc, const char * argv[]) {
     
     // TODO: Here
     //system("clear");//system("@cls||clear");
+    
+//    setupSocket();
+    
+    // --------- HERE IS THE TESTING NETWORK CODE -----------
+    
+    char result[500];
+    sendRequestToServer("register Alireza 1234", result);
+
+    return 0;
+    
     setupTerminalDimensions();
     atexit(showCursor);
     initializeAsciiArt();
