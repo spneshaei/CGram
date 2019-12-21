@@ -75,9 +75,6 @@ Message messages[200];
 static struct termios term, oterm;
 
 static int getch(void);
-//static int kbhit(void);
-//static int kbesc(void);
-//static int kbget(void);
 
 int terminalColumns = 80, terminalLines = 24;
 
@@ -99,57 +96,6 @@ static int getch() {
     }
     return c;
 }
-
-//static int kbhit(){
-//    int c = 0;
-//
-//    tcgetattr(0, &oterm);
-//    memcpy(&term, &oterm, sizeof(term));
-//    term.c_lflag &= ~(ICANON | ECHO);
-//    term.c_cc[VMIN] = 0;
-//    term.c_cc[VTIME] = 1;
-//    tcsetattr(0, TCSANOW, &term);
-//    c = getchar();
-//    tcsetattr(0, TCSANOW, &oterm);
-//    if (c != -1) ungetc(c, stdin);
-//    return ((c != -1) ? 1 : 0);
-//}
-
-//static int kbesc(){
-//    int c;
-//
-//    if (!kbhit()) return KEY_ESCAPE;
-//    c = getch();
-//    if (c == '[') {
-//        switch (getch()) {
-//            case 'A':
-//                c = KEY_UP;
-//                break;
-//            case 'B':
-//                c = KEY_DOWN;
-//                break;
-//            case 'C':
-//                c = KEY_LEFT;
-//                break;
-//            case 'D':
-//                c = KEY_RIGHT;
-//                break;
-//            default:
-//                c = 0;
-//                break;
-//        }
-//    } else {
-//        c = 0;
-//    }
-//    if (c == 0) while (kbhit()) getch();
-//    return c;
-//}
-
-//static int kbget(){
-//    int c;
-//    c = getch();
-//    return (c == KEY_ESCAPE) ? kbesc() : c;
-//}
 
 int getWords(char *base, char target[10][200]) {
     int n = 0, i, j = 0;
@@ -226,6 +172,44 @@ void resetFont() {
     printf("\x1b[0m");
 }
 
+enum PasswordStatus {
+    TOOWEAK = 1,
+    WEAK = 2,
+    MODERATE = 3,
+    STRONG = 4,
+    TOOSTRONG = 5,
+    TOOSHORT = 6
+};
+
+enum PasswordStatus passwordStatus(char *password) {
+    unsigned long len = strlen(password);
+    if(len < 6) return TOOSHORT;
+    int hasUpper = 0, hasLower = 0, hasSymbol = 0, hasSpecial = 0, hasNum = 0, flag = 0, i = 0;
+    while (password[i] != '\0') {
+        char x = password[i];
+        if (x >= 'a' && x <= 'z') hasLower = 1;
+        else if (x >= 'A' && x <= 'X') hasUpper = 1;
+        else if ((x >= 33 && x <= 47) || (x >= 58 && x <= 64) || (x >= 91 && x <= 96)) hasSymbol = 1;
+        else if (x >= 123 && x <= 126) hasSpecial = 1;
+        else if (x >= 48 && x <= 57) hasNum = 1;
+        i++;
+    }
+    if (hasUpper) flag += 10;
+    if (hasLower) flag += 10;
+    if (hasSymbol) flag += 10;
+    if (hasSpecial) flag += 10;
+    if (hasNum) flag += 10;
+        
+    switch (flag) {
+        case 50: return TOOSTRONG;
+        case 40: return STRONG;
+        case 30: return MODERATE;
+        case 20: return WEAK;
+        case 10: return TOOWEAK;
+        default: return TOOWEAK;
+    }
+}
+
 void loginPage_printUntilSpecifiedUsername(char *username) {
     system("clear");
     hideCursor();
@@ -252,6 +236,42 @@ void registerPage_printUntilSpecifiedUsername(char *username) {
     printStringCentered(username);
 }
 
+void registerPage_printUntilSpecifiedPassword(char *username, char *password) { 
+    system("clear");
+    hideCursor();
+    printf("\n\n\n\n\n");
+    makeBoldRed();
+    printStringCentered("Register in CGram");
+    printf("\n\n\n");
+    printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
+    resetFont();
+    printf("\n\n");
+    printStringCentered(username);
+    printf("\n\n");
+    makeBoldRed();
+    printStringCentered("Enter your password below:");
+    resetFont();
+    printf("\n\n");
+    printStringCentered(password);
+    printf("\n\n");
+    enum PasswordStatus strength = passwordStatus(password);
+    makeRed();
+    if (strength == TOOSHORT) {
+        printStringCentered("Password is too short");
+    } else if (strength == TOOWEAK) {
+        printStringCentered("Password strength: Too Weak");
+    } else if (strength == WEAK) {
+        printStringCentered("Password strength: Weak");
+    } else if (strength == MODERATE) {
+        printStringCentered("Password strength: Moderate");
+    } else if (strength == STRONG) {
+        printStringCentered("Password strength: Strong");
+    } else if (strength == TOOSTRONG) {
+        printStringCentered("Password strength: Too Strong");
+    }
+    resetFont();
+}
+
 void mainPage_printUntilSpecifiedChannel(char *channel) {
     system("clear");
     hideCursor();
@@ -272,37 +292,69 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     printStringCentered(channel);
 }
 
-int sendRequestToServer(char *request, char *result) {  // returns -1 if no result from the server
-    unsigned long requestLen = strlen(request);
-    char r[requestLen];
-    for (int i = 0; i <= requestLen; i++) {
-        if (request[i] == '\0') {
-            break;
-        }
-        r[i] = request[i];
+char requestToSend[MAX];
+
+char originalReq[MAX] = {'\0'};
+
+void copyReqs() {
+    for (int i = 0; i < MAX; i++) {
+        requestToSend[i] = '\0';
     }
+    for (int i = 0; i < MAX; i++) {
+        if (originalReq[i] == '\0') {
+            requestToSend[i] = '\n';
+            requestToSend[i + 1] = '\0';
+            break;
+        } else {
+            requestToSend[i] = originalReq[i];
+        }
+    }
+}
+
+void chat(int server_socket) {
+    copyReqs();
+    char buffer[MAX];
+    int n;
+    while (1) {
+        bzero(buffer, sizeof(buffer));
+        n = 0;
+        send(server_socket, requestToSend, sizeof(requestToSend), 0);
+        bzero(requestToSend, sizeof(requestToSend));
+        recv(server_socket, requestToSend, sizeof(requestToSend), 0);
+        return;
+    }
+}
+
+void sendRequestToServer(char *request, char *result) {
+    strcpy(originalReq, request);
     
-    int clientSocket;
+    int client_socket;
     struct sockaddr_in servaddr;
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
+    
+    // Create and verify socket
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    
+    // Assign IP and port
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     servaddr.sin_port = htons(PORT);
     
-    connect(clientSocket, (SA*)&servaddr, sizeof(servaddr));
-    send(server_socket, r, sizeof(r), 0);
-    recv(clientSocket, result, sizeof(result), 0);
-    shutdown(clientSocket, SHUT_RDWR);
-    
-    if (strcmp(result, "") == 0) {
-        return -1;
+    // Connect the client socket to server socket
+    if (connect(client_socket, (SA*)&servaddr, sizeof(servaddr)) != 0) {
     }
-    return 0;
+    
+    // Function for chat
+    chat(client_socket);
+    
+    strcpy(result, requestToSend);
+    
+    // Close the socket
+    shutdown(client_socket, SHUT_RDWR);
 }
 
-int loginServer(char username[], char password[]) { // returns -1 if error
-    char req[300] = {'\0'}, result[500];
+int loginServer(char username[], char password[]) { // returns -3 if wrong username, -2 if wrong password, -1 if neither
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "login %s, %s", username, password);
     sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
@@ -312,10 +364,22 @@ int loginServer(char username[], char password[]) { // returns -1 if error
         return -1;
     }
     const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    const cJSON *_content = cJSON_GetObjectItemCaseSensitive(json, "content");
+    char x[MAX] ={'\0'};
+    strcpy(x, _content->valuestring);
     if (cJSON_IsString(type) && (type->valuestring != NULL)) {
         if (strcmp(type->valuestring, "Error") == 0) {
             cJSON_Delete(json);
             strcpy(token, "-1");
+            if (cJSON_IsString(_content)) {
+                if (strcmp(x, "Username is not valid.") == 0) {
+                    return -3;
+                } else if (strcmp(x, "Wrong password.") == 0) {
+                    return -2;
+                } else {
+                    return -1;
+                }
+            }
             return -1;
         } else if (strcmp(type->valuestring, "AuthToken") == 0) {
             const cJSON *_token = cJSON_GetObjectItemCaseSensitive(json, "content");
@@ -340,54 +404,129 @@ int loginServer(char username[], char password[]) { // returns -1 if error
 }
 
 int registerServer(char username[], char password[]) { // returns -1 if error
-    char req[300] = {'\0'}, result[100];
+    char req[MAX] = {'\0'}, result[MAX] = {'\0'};
     sprintf(req, "register %s, %s", username, password);
     sendRequestToServer(req, result);
-    // TODO: Check result and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
 int createChannelServer() { // returns -1 if error
-    // TODO: IMPORTANT: It seems it doesn't do normal things as findChannel...
-    char req[300] = {'\0'}, result[100];
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "create channel %s, %s", channel, token);
     sendRequestToServer(req, result);
-    // TODO: Check result and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
 int findChannelServer() { // returns -1 if error
-    char req[300] = {'\0'}, result[500];
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "join channel %s, %s", channel, token);
     sendRequestToServer(req, result);
-    // TODO: Parse result, set global arrays and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
 int logoutServer() { // returns -1 if error
-    // TODO: IMPORTANT: It seems it doesn't do normal things as findChannel...
-    char req[300] = {'\0'}, result[100];
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "logout %s", token);
     sendRequestToServer(req, result);
-    // TODO: Check result and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
 int reloadMembersServer() { // returns -1 if error
-    char req[300] = {'\0'}, result[500];
+    for (int i = 0; i < membersCount; i++) {
+        strcpy(members[i].name, "");
+    }
+    membersCount = 0;
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "channel members %s", token);
     sendRequestToServer(req, result);
-    // TODO: Parse result, set global arrays and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else if (strcmp(type->valuestring, "List") == 0) {
+            const cJSON *content = cJSON_GetObjectItemCaseSensitive(json, "content");
+            const cJSON *eachMember = NULL;
+            cJSON_ArrayForEach(eachMember, content) {
+                if (cJSON_IsString(eachMember) && (eachMember->valuestring != NULL)) {
+                    Member m;
+                    strcpy(m.name, eachMember->valuestring);
+                    members[membersCount] = m;
+                    membersCount++;
+                }
+            }
+            return 1;
+        } else {
+            cJSON_Delete(json);
+            return -1;
+        }
+    }
     return -1;
 }
 
 int reloadMessagesServer() { // returns -1 if error
-    for (int i = 0; i < messagesCount; i++) {
-        strcpy(messages[i].content, "");
-        strcpy(messages[i].sender, "");
-    }
-    messagesCount = 0;
-    char req[300] = {'\0'}, result[1000];
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "refresh %s", token);
     sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
@@ -396,7 +535,7 @@ int reloadMessagesServer() { // returns -1 if error
         return -1;
     }
     const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
-     if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
          if (strcmp(type->valuestring, "Error") == 0) {
              cJSON_Delete(json);
              return -1;
@@ -416,6 +555,7 @@ int reloadMessagesServer() { // returns -1 if error
                      messagesCount++;
                  }
              }
+             return 0;
          } else {
              cJSON_Delete(json);
              return -1;
@@ -425,18 +565,48 @@ int reloadMessagesServer() { // returns -1 if error
 }
 
 int sendMessageServer(char message[]) { // returns -1 if error
-    char req[300] = {'\0'}, result[100];
+    char req[MAX] = {'\0'}, result[MAX];
+    unsigned long len = strlen(message);
+    if (message[len - 1] == '\n') {
+        message[len - 1] = '\0';
+    }
     sprintf(req, "send %s, %s", message, token);
     sendRequestToServer(req, result);
-    // TODO: Check result and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
 int leaveChannelServer() { // returns -1 if error
-    char req[300] = {'\0'}, result[100];
+    char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "leave %s", token);
     sendRequestToServer(req, result);
-    // TODO: Check result and return good value
+    cJSON *json = cJSON_Parse(result);
+    if (json == NULL) {
+        cJSON_Delete(json);
+        return -1;
+    }
+    const cJSON *type = cJSON_GetObjectItemCaseSensitive(json, "type");
+    if (cJSON_IsString(type) && (type->valuestring != NULL)) {
+        if (strcmp(type->valuestring, "Error") == 0) {
+            cJSON_Delete(json);
+            return -1;
+        } else {
+            return 0;
+        }
+    }
     return -1;
 }
 
@@ -474,11 +644,11 @@ void chatPage() {
     makeRed();
     printf("\n\nType your message ==> ");
     resetFont();
-    char s[200];
-    scanf("%s", s);
+    char s[200] = {'\0'};
+    fgets(s, 200, stdin);
     printf("\n\n");
     hideCursor();
-    if (strcmp(s, "reload") == 0) {
+    if (strcmp(s, "reload\n") == 0) {
         makeBoldRed();
         printStringCentered("Reloading the messages...");
         resetFont();
@@ -507,7 +677,7 @@ void chatPage() {
                 }
             }
         }
-    } else if (strcmp(s, "members") == 0) {
+    } else if (strcmp(s, "members\n") == 0) {
         makeBoldRed();
         printStringCentered("Finding all the members...");
         resetFont();
@@ -532,11 +702,6 @@ void chatPage() {
             for (int i = 0; i < membersCount; i++) {
                 printStringCentered(members[i].name);
                 printf("\n");
-//                if (i % 2 == 0) {
-//                    printf("%s\t", members[i].name);
-//                } else {
-//                    printf("%s\n", members[i].name);
-//                }
             }
             printf("\n\n");
             makeBoldRed();
@@ -550,7 +715,7 @@ void chatPage() {
                 }
             }
         }
-    } else if (strcmp(s, "leave") == 0) {
+    } else if (strcmp(s, "leave\n") == 0) {
         makeBoldRed();
         printStringCentered("Leaving the channel...");
         resetFont();
@@ -652,22 +817,15 @@ void mainPage() {
                     loginPage();
                     return;
                 }
-            } else if (strStartsWith("new ", channel)) {
+                // TODO: Possible bug here due to \xff-ing...
+            } else if (strStartsWith("new ", channel) || strStartsWith("\xffnew ", channel)) {
                 printf("\n\n");
                 char target[10][200];
                 getWords(channel, target);
                 strcpy(channel, target[1]);
                 if (strcmp(channel, "") == 0) {
-                    makeBoldRed();
-                    printStringCentered("Invalid channel name. Press 't' to retry.");
-                    resetFont();
-                    while (1) {
-                        char c = getch();
-                        if (c == 't') {
-                            mainPage();
-                            return;
-                        }
-                    }
+                    mainPage();
+                    return;
                 }
                 makeBoldRed();
                 printStringCentered("Creating the channel...");
@@ -675,12 +833,16 @@ void mainPage() {
                 printf("\n\n\n");
                 
                 int result1 = createChannelServer();
-                // TODO: should be any result for joinChannel also here?
-                int result2 = reloadMessagesServer();
+                for (int i = 0; i < messagesCount; i++) {
+                    strcpy(messages[i].content, "");
+                    strcpy(messages[i].sender, "");
+                }
+                messagesCount = 0;
+                int result3 = reloadMessagesServer();
                 
-                if (result1 == -1 || result2 == -1) {
+                if (result1 == -1 || result3 == -1) {
                     makeBoldRed();
-                    printStringCentered("Creating the channel failed. Press 't' to retry.");
+                    printStringCentered("Channel name exists. Press 't' to retry.");
                     resetFont();
                     while (1) {
                         char c = getch();
@@ -711,16 +873,8 @@ void mainPage() {
     printf("\n\n");
     
     if (strcmp(channel, "") == 0) {
-        makeBoldRed();
-        printStringCentered("Invalid channel name. Press 't' to retry.");
-        resetFont();
-        while (1) {
-            char c = getch();
-            if (c == 't') {
-                mainPage();
-                return;
-            }
-        }
+        mainPage();
+        return;
     }
     
     makeBoldRed();
@@ -729,11 +883,16 @@ void mainPage() {
     printf("\n\n\n");
     
     int result1 = findChannelServer();
+    for (int i = 0; i < messagesCount; i++) {
+        strcpy(messages[i].content, "");
+        strcpy(messages[i].sender, "");
+    }
+    messagesCount = 0;
     int result2 = reloadMessagesServer();
     
     if (result1 == -1 || result2 == -1) {
         makeBoldRed();
-        printStringCentered("Looking for the channel failed. Press 't' to retry.");
+        printStringCentered("The channel doesn't exist. Press 't' to retry.");
         resetFont();
         while (1) {
             char c = getch();
@@ -803,22 +962,28 @@ void registerPage() {
     }
     
     makeBoldRed();
-    printStringCentered("Enter your password below (it will be hidden for safety reasons):");
+    printStringCentered("Enter your password below:");
     resetFont();
     
     shouldContinue = 1;
     while (shouldContinue) {
         char c = getch();
-        if (c == '\n') {
-            break;
+        if (c != '\n') {
+            if (c == '\x7f' || c == 8) {
+                password[strlen(password) - 1] = '\0';
+            } else {
+                char oneCharArr[2];
+                oneCharArr[0] = c;
+                oneCharArr[1] = '\0';
+                strcat(password, oneCharArr);
+            }
+            registerPage_printUntilSpecifiedPassword(username, password);
         } else {
-            char oneCharArr[2];
-            oneCharArr[0] = c;
-            oneCharArr[1] = '\0';
-            strcat(password, oneCharArr);
+            shouldContinue = 0;
+            break;
         }
     }
-    
+
     printf("\n\n\n\n");
     
     if (strcmp(password, "") == 0) {
@@ -838,7 +1003,8 @@ void registerPage() {
     }
     
     makeBoldRed();
-    printStringCentered("Registring...");
+    // TODO: Check spelling of Registering!!
+    printStringCentered("Registering...");
     resetFont();
     printf("\n\n\n");
     
@@ -846,7 +1012,7 @@ void registerPage() {
     
     if (result == -1) {
         makeBoldRed();
-        printStringCentered("Registration failed. Press 't' to retry or 'r' to return.");
+        printStringCentered("Username is not available. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
             char c = getch();
@@ -860,7 +1026,7 @@ void registerPage() {
         }
     } else {
         makeBoldRed();
-        printStringCentered("Registration succesful! Press any key to return.");
+        printStringCentered("Registration successful! Press any key to return.");
         resetFont();
         getch();
         welcomePage();
@@ -966,6 +1132,36 @@ void loginPage() {
     
     int res = loginServer(username, password);
     
+    if (res == -2) {
+        makeBoldRed();
+        printStringCentered("Wrong password. Press 't' to retry or 'r' to return.");
+        resetFont();
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                loginPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
+        }
+    } else if (res == -3) {
+        makeBoldRed();
+        printStringCentered("Username does not exist. Press 't' to retry or 'r' to return.");
+        resetFont();
+        while (1) {
+            char c = getch();
+            if (c == 't') {
+                loginPage();
+                return;
+            } else if (c == 'r') {
+                welcomePage();
+                return;
+            }
+        }
+    }
+    
     if (strcmp(token, "-1") == 0 || res == -1) {
         makeBoldRed();
         printStringCentered("Login failed. Press 't' to retry or 'r' to return.");
@@ -997,14 +1193,11 @@ void welcomePage() {
     }
     printf("\n\n\n");
     printStringCentered("Welcome to CGram");
-//    makeRed();
     printf("\n\n");
     printStringCentered("The most advanced messaging app designed ever in pure C");
     printf("\n\n\n\n\n");
     makeRed();
     printStringCentered("Designed and developed by Seyed Parsa Neshaei");
-    printf("\n\n");
-    printStringCentered("Don't forget to check out http://spneshaei.com for more great projects!");
     resetFont();
     printf("\n\n\n\n\n\n");
     printStringCentered("Press 'l' on your keyboard to log in quickly, or 'q' to exit CGram.");
@@ -1051,10 +1244,6 @@ void welcomePage() {
                 registerPage();
                 break;
             default:
-//                printf("\n");
-//                char str1[100] = {'\0'};
-//                sprintf(str1, "Sorry, I don't know the meaning of '%c'!", c);
-//                printStringCentered(str1);
                 break;
         }
     }
@@ -1090,22 +1279,8 @@ int main (int argc, const char * argv[]) {
     // IDEA: Password strength
     // IDEA: Activity Indicator
     // FEATURE: esc exits app
-    
-    
-    
-//    signal(SIGINT, exitCtrlCHandler);
-    
-    // TODO: Here
-    //system("clear");//system("@cls||clear");
-    
-//    setupSocket();
-    
-    // --------- HERE IS THE TESTING NETWORK CODE -----------
-    
-    char result[500];
-    sendRequestToServer("register Alireza 1234", result);
-
-    return 0;
+    // BUG: Wrong login crash...! Or not??
+    // BUG: Not very good password strength finder!
     
     setupTerminalDimensions();
     atexit(showCursor);
