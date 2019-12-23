@@ -353,7 +353,7 @@ void sendRequestToServer(char *request, char *result) {
     shutdown(client_socket, SHUT_RDWR);
 }
 
-int loginServer(char username[], char password[]) { // returns -3 if wrong username, -2 if wrong password, -1 if neither
+int loginServer(const char username[], const char password[]) { // returns -3 if wrong username, -2 if wrong password, -1 if neither
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "login %s, %s", username, password);
     sendRequestToServer(req, result);
@@ -660,22 +660,24 @@ void chatPage() {
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r') {
+                if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
             }
         } else {
-            makeBoldRed();
-            printStringCentered("Reloading successful. Press 's' to show new messages.");
-            resetFont();
-            while (1) {
-                char c = getch();
-                if (c == 's') {
-                    chatPage();
-                    return;
-                }
-            }
+            chatPage();
+            return;
+//            makeBoldRed();
+//            printStringCentered("Reloading successful. Press 's' to show new messages.");
+//            resetFont();
+//            while (1) {
+//                char c = getch();
+//                if (c == 's') {
+//                    chatPage();
+//                    return;
+//                }
+//            }
         }
     } else if (strcmp(s, "members\n") == 0) {
         makeBoldRed();
@@ -689,7 +691,7 @@ void chatPage() {
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r') {
+                if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -709,7 +711,7 @@ void chatPage() {
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r') {
+                if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -727,7 +729,7 @@ void chatPage() {
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r') {
+                if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -736,7 +738,7 @@ void chatPage() {
             mainPage();
             return;
         }
-    }else {
+    } else {
         makeBoldRed();
         printStringCentered("Sending the message...");
         resetFont();
@@ -749,22 +751,24 @@ void chatPage() {
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r') {
+                if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
             }
         } else {
-            makeBoldRed();
-            printStringCentered("Message sent. Press 'r' to return.");
-            resetFont();
-            while (1) {
-                char c = getch();
-                if (c == 'r') {
-                    chatPage();
-                    return;
-                }
-            }
+            chatPage();
+            return;
+//            makeBoldRed();
+//            printStringCentered("Message sent. Press 'r' to return.");
+//            resetFont();
+//            while (1) {
+//                char c = getch();
+//                if (c == 'r') {
+//                    chatPage();
+//                    return;
+//                }
+//            }
         }
     }
 }
@@ -806,7 +810,7 @@ void mainPage() {
                     resetFont();
                     while (1) {
                         char c = getch();
-                        if (c == 't') {
+                        if (c == 't' || c == 'T') {
                             mainPage();
                             return;
                         }
@@ -846,7 +850,7 @@ void mainPage() {
                     resetFont();
                     while (1) {
                         char c = getch();
-                        if (c == 't') {
+                        if (c == 't' || c == 'T') {
                             mainPage();
                             return;
                         }
@@ -896,7 +900,7 @@ void mainPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 mainPage();
                 return;
             }
@@ -951,10 +955,10 @@ void registerPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 registerPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -992,10 +996,10 @@ void registerPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 registerPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1016,10 +1020,10 @@ void registerPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 registerPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1080,10 +1084,10 @@ void loginPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 loginPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1115,10 +1119,10 @@ void loginPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 loginPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1138,10 +1142,10 @@ void loginPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 loginPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1152,10 +1156,10 @@ void loginPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 loginPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1168,10 +1172,10 @@ void loginPage() {
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't') {
+            if (c == 't' || c == 'T') {
                 loginPage();
                 return;
-            } else if (c == 'r') {
+            } else if (c == 'r' || c == 'R') {
                 welcomePage();
                 return;
             }
@@ -1214,7 +1218,7 @@ void welcomePage() {
                 printStringCentered("Are you sure you want to quit? Press 'y' for YES and 'n' for NO.");
                 while (1) {
                     char r = getch();
-                    if (r == 'y') {
+                    if (r == 'y' || r == 'Y') {
                         // TODO: Here
                         system("clear");//system("@cls||clear");
                         printf("\n");
@@ -1274,19 +1278,149 @@ void endSocket() {
     shutdown(server_socket, SHUT_RDWR);
 }
 
+void commandLineLogin(const char *_username, const char *password) {
+    // TODO: h
+    system("clear");
+    hideCursor();
+    makeBoldRed();
+    printf("\n\n");
+    printStringCentered("Welcome to CGram");
+    printf("\n\n\n");
+    printStringCentered("Logging in...");
+    resetFont();
+    printf("\n\n\n");
+    
+    strcpy(username, _username);
+    int res = loginServer(username, password);
+    
+    if (res == -2) {
+        makeBoldRed();
+        printStringCentered("Wrong password. Press 'm' to go to the main page or 'q' to quit.");
+        resetFont();
+        while (1) {
+            char c = getch();
+            if (c == 'm' || c == 'M') {
+                welcomePage();
+                return;
+            } else if (c == 'q') {
+                // TODO: Here
+                system("clear");//system("@cls||clear");
+                printf("\n");
+                makeBoldRed();
+                printStringCentered("Thank you for using CGram!");
+                resetFont();
+                printf("\n\n");
+                exit(0);
+            }
+        }
+    } else if (res == -3) {
+        makeBoldRed();
+        printStringCentered("Username does not exist. Press 'm' to go to the main page or 'q' to quit.");
+        resetFont();
+        while (1) {
+            char c = getch();
+            if (c == 'm' || c == 'M') {
+                welcomePage();
+                return;
+            } else if (c == 'q') {
+                // TODO: Here
+                system("clear");//system("@cls||clear");
+                printf("\n");
+                makeBoldRed();
+                printStringCentered("Thank you for using CGram!");
+                resetFont();
+                printf("\n\n");
+                exit(0);
+            }
+        }
+    }
+    
+    if (strcmp(token, "-1") == 0 || res == -1) {
+        makeBoldRed();
+        printStringCentered("Login failed. Press 'm' to go to the main page or 'q' to quit.");
+        resetFont();
+        while (1) {
+            char c = getch();
+            if (c == 'm' || c == 'M') {
+                welcomePage();
+                return;
+            } else if (c == 'q') {
+                // TODO: Here
+                system("clear");//system("@cls||clear");
+                printf("\n");
+                makeBoldRed();
+                printStringCentered("Thank you for using CGram!");
+                resetFont();
+                printf("\n\n");
+                exit(0);
+            }
+        }
+    } else {
+        mainPage();
+    }
+}
+
+void commandLineInvalid() {
+    printf("\n\n");
+    makeBoldRed();
+    printStringCentered("Invalid arguments passed to CGram. Use --help to get help.");
+    resetFont();
+    printf("\n\n");
+}
+
+void commandLineHelp() {
+    printf("\n\n");
+    makeBoldRed();
+    // TODO: Check if 1) should the beginning of Help be capitialized and 2) what CLI stands for and...!
+    printStringCentered("CGram CLI Help");
+    resetFont();
+    printf("\n\n\n");
+    makeRed();
+    printStringCentered("Open CGram without agrguments to go to the welcome page.");
+    printf("\n\n");
+    printStringCentered("Pass username and password to login quickly.");
+    printf("\n\n");
+    printStringCentered("Pass 'register' to quickly go to the register form.");
+    printf("\n\n");
+    printStringCentered("Pass --help to see this guide.");
+    printf("\n\n\n");
+    resetFont();
+}
+
 int main (int argc, const char * argv[]) {
-    // IDEA: command line arguments to facilitate using app
-    // IDEA: Password strength
+    // Done Feature: command line arguments to facilitate using app
+    // Done Feature: Password strength
+    
     // IDEA: Activity Indicator
+    
     // FEATURE: esc exits app
-    // BUG: Wrong login crash...! Or not??
+    
     // BUG: Not very good password strength finder!
     
     setupTerminalDimensions();
     atexit(showCursor);
     initializeAsciiArt();
     
-    welcomePage();
+    switch (argc) {
+        case 0:
+        case 1:
+            welcomePage();
+            break;
+        case 2:
+            if (strcmp(argv[1], "--help") == 0) {
+                commandLineHelp();
+            } else if (strcmp(argv[1], "register") == 0) {
+                registerPage();
+            } else {
+                commandLineInvalid();
+            }
+            break;
+        case 3:
+            commandLineLogin(argv[1], argv[2]);
+            break;
+        default:
+            break;
+    }
     
     return 0;
 }
