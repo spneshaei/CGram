@@ -119,6 +119,7 @@ int strStartsWith(const char *pre, const char *str) {
 }
 
 void exitCtrlCHandler(int s) {
+    showCursor();
     exit(1);
 }
 
@@ -162,13 +163,13 @@ void showCursor() {
 
 enum Colors { RED = 35, GREEN = 32, YELLOW = 33, BLUE = 34, CYAN = 36 } appColor = RED;
 
-void makeBoldRed() {
+void makeBoldColor() {
     char x[100] = {'\0'};
     sprintf(x, "\033[1;%dm", appColor);
     printf("%s", x);
 }
 
-void makeRed() {
+void makeColor() {
     char x[100] = {'\0'};
     sprintf(x, "\033[0;%dm", appColor);
     printf("%s", x);
@@ -220,7 +221,7 @@ void loginPage_printUntilSpecifiedUsername(char *username) {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Login to CGram");
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
@@ -233,7 +234,7 @@ void registerPage_printUntilSpecifiedUsername(char *username) {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Register in CGram");
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
@@ -246,7 +247,7 @@ void registerPage_printUntilSpecifiedPassword(char *username, char *password) {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Register in CGram");
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
@@ -254,14 +255,14 @@ void registerPage_printUntilSpecifiedPassword(char *username, char *password) {
     printf("\n\n");
     printStringCentered(username);
     printf("\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Enter your password below:");
     resetFont();
     printf("\n\n");
     printStringCentered(password);
     printf("\n\n");
     enum PasswordStatus strength = passwordStatus(password);
-    makeRed();
+    makeColor();
     if (strength == TOOSHORT) {
         printStringCentered("Password is too short");
     } else if (strength == TOOWEAK) {
@@ -282,7 +283,7 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     
     char str1[200] = {'\0'};
     sprintf(str1, "Welcome, %s!", username);
@@ -623,11 +624,11 @@ void chatPage() {
     system("clear");
     hideCursor();
     printf("\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered(channel);
     resetFont();
     printf("\n\n");
-    makeRed();
+    makeColor();
     printStringCentered("Messages sent in this channel are shown here.");
     printf("\n");
     printStringCentered("Type a new message and press enter to send it.");
@@ -641,13 +642,13 @@ void chatPage() {
     printf("\n\n");
     for (int i = 0; i < messagesCount; i++) {
         Message m = messages[i];
-        makeRed();
+        makeColor();
         printf("%s\t\t", m.sender);
         resetFont();
         printf("%s\n", m.content);
     }
     showCursor();
-    makeRed();
+    makeColor();
     printf("\n\nType your message ==> ");
     resetFont();
     char s[200] = {'\0'};
@@ -655,13 +656,13 @@ void chatPage() {
     printf("\n\n");
     hideCursor();
     if (strcmp(s, "reload\n") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Reloading the messages...");
         resetFont();
         printf("\n\n");
         int result = reloadMessagesServer();
         if (result == -1) {
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("Reloading failed. Press 'r' to return.");
             resetFont();
             while (1) {
@@ -686,13 +687,13 @@ void chatPage() {
 //            }
         }
     } else if (strcmp(s, "members\n") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Finding all the members...");
         resetFont();
         printf("\n\n");
         int result = reloadMembersServer();
         if (result == -1) {
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("Finding failed. Press 'r' to return.");
             resetFont();
             while (1) {
@@ -703,7 +704,7 @@ void chatPage() {
                 }
             }
         } else {
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("All Channel Members:");
             resetFont();
             printf("\n\n");
@@ -712,7 +713,7 @@ void chatPage() {
                 printf("\n");
             }
             printf("\n\n");
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("Press 'r' to return.");
             resetFont();
             while (1) {
@@ -724,13 +725,13 @@ void chatPage() {
             }
         }
     } else if (strcmp(s, "leave\n") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Leaving the channel...");
         resetFont();
         printf("\n\n");
         int result = leaveChannelServer();
         if (result == -1) {
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("Leaving failed. Press 'r' to return.");
             resetFont();
             while (1) {
@@ -745,14 +746,14 @@ void chatPage() {
             return;
         }
     } else {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Sending the message...");
         resetFont();
         printf("\n\n");
         int result1 = sendMessageServer(s);
         int result2 = reloadMessagesServer();
         if (result1 == -1 || result2 == -1) {
-            makeBoldRed();
+            makeBoldColor();
             printStringCentered("Sending failed. Press 'r' to return.");
             resetFont();
             while (1) {
@@ -786,7 +787,7 @@ void mainPage() {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     
     char str1[200] = {'\0'};
     sprintf(str1, "Welcome, %s!", username);
@@ -805,13 +806,13 @@ void mainPage() {
         if (c == '\n') {
             if (strcmp(channel, "logout") == 0) {
                 printf("\n\n");
-                makeBoldRed();
+                makeBoldColor();
                 printStringCentered("Logging out...");
                 resetFont();
                 printf("\n\n");
                 int res = logoutServer();
                 if (res == -1) {
-                    makeBoldRed();
+                    makeBoldColor();
                     printStringCentered("Logout failed. Press 't' to retry.");
                     resetFont();
                     while (1) {
@@ -837,7 +838,7 @@ void mainPage() {
                     mainPage();
                     return;
                 }
-                makeBoldRed();
+                makeBoldColor();
                 printStringCentered("Creating the channel...");
                 resetFont();
                 printf("\n\n\n");
@@ -851,7 +852,7 @@ void mainPage() {
                 int result3 = reloadMessagesServer();
                 
                 if (result1 == -1 || result3 == -1) {
-                    makeBoldRed();
+                    makeBoldColor();
                     printStringCentered("Channel name exists. Press 't' to retry.");
                     resetFont();
                     while (1) {
@@ -887,7 +888,7 @@ void mainPage() {
         return;
     }
     
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Looking for the channel...");
     resetFont();
     printf("\n\n\n");
@@ -901,7 +902,7 @@ void mainPage() {
     int result2 = reloadMessagesServer();
     
     if (result1 == -1 || result2 == -1) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("The channel doesn't exist. Press 't' to retry.");
         resetFont();
         while (1) {
@@ -923,7 +924,7 @@ void registerPage() {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Register in CGram");
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
@@ -956,7 +957,7 @@ void registerPage() {
     printf("\n\n");
     
     if (strcmp(username, "") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -971,7 +972,7 @@ void registerPage() {
         }
     }
     
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Enter your password below:");
     resetFont();
     
@@ -997,7 +998,7 @@ void registerPage() {
     printf("\n\n\n\n");
     
     if (strcmp(password, "") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1012,7 +1013,7 @@ void registerPage() {
         }
     }
     
-    makeBoldRed();
+    makeBoldColor();
     // TODO: Check spelling of Registering!!
     printStringCentered("Registering...");
     resetFont();
@@ -1021,7 +1022,7 @@ void registerPage() {
     int result = registerServer(username, password);
     
     if (result == -1) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Username is not available. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1035,7 +1036,7 @@ void registerPage() {
             }
         }
     } else {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Registration successful! Press any key to return.");
         resetFont();
         getch();
@@ -1052,7 +1053,7 @@ void loginPage() {
     system("clear");
     hideCursor();
     printf("\n\n\n\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Login to CGram");
     printf("\n\n\n");
     printStringCentered("Enter your username below, or type 'return' and then enter to return back:");
@@ -1085,7 +1086,7 @@ void loginPage() {
     printf("\n\n");
     
     if (strcmp(username, "") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Invalid username. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1100,7 +1101,7 @@ void loginPage() {
         }
     }
     
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Enter your password below (it will be hidden for safety reasons):");
     resetFont();
     
@@ -1120,7 +1121,7 @@ void loginPage() {
     printf("\n\n\n\n");
     
     if (strcmp(password, "") == 0) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Invalid password. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1135,7 +1136,7 @@ void loginPage() {
         }
     }
     
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Logging in...");
     resetFont();
     printf("\n\n\n");
@@ -1143,7 +1144,7 @@ void loginPage() {
     int res = loginServer(username, password);
     
     if (res == -2) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Wrong password. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1157,7 +1158,7 @@ void loginPage() {
             }
         }
     } else if (res == -3) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Username does not exist. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1173,7 +1174,7 @@ void loginPage() {
     }
     
     if (strcmp(token, "-1") == 0 || res == -1) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Login failed. Press 't' to retry or 'r' to return.");
         resetFont();
         while (1) {
@@ -1196,34 +1197,34 @@ void colorChangePage() {
     // TODO: h
     system("clear");
     hideCursor();
-    makeBoldRed();
+    makeBoldColor();
     printf("\n\n");
     printStringCentered("Press the first letter of the given colors to change CGram's color scheme.");
     resetFont();
     printf("\n\n");
     printf("");
     appColor = RED;
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Red");
     resetFont();
     printf("\n\n");
     appColor = GREEN;
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Green");
     resetFont();
     printf("\n\n");
     appColor = YELLOW;
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Yellow");
     resetFont();
     printf("\n\n");
     appColor = BLUE;
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Blue");
     resetFont();
     printf("\n\n");
     appColor = CYAN;
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Cyan");
     resetFont();
     printf("\n\n");
@@ -1286,7 +1287,7 @@ void welcomePage() {
     // TODO: h
     system("clear");
     hideCursor();
-    makeBoldRed();
+    makeBoldColor();
     printf("\n\n");
     for (int i = 0; i < 5; i++) {
         printf("%s", asciiArt[i]);
@@ -1296,7 +1297,7 @@ void welcomePage() {
     printf("\n\n\n");
     printStringCentered("The most advanced messaging app designed ever in pure C");
     printf("\n\n\n");
-    makeRed();
+    makeColor();
     printStringCentered("Designed and developed by Seyed Parsa Neshaei");
     resetFont();
     printf("\n\n\n\n");
@@ -1320,7 +1321,7 @@ void welcomePage() {
                         // TODO: Here
                         system("clear");//system("@cls||clear");
                         printf("\n");
-                        makeBoldRed();
+                        makeBoldColor();
                         printStringCentered("Thank you for using CGram!");
                         resetFont();
                         printf("\n\n");
@@ -1421,7 +1422,7 @@ void commandLineLogin(const char *_username, const char *password) {
     // TODO: h
     system("clear");
     hideCursor();
-    makeBoldRed();
+    makeBoldColor();
     printf("\n\n");
     printStringCentered("Welcome to CGram");
     printf("\n\n\n");
@@ -1433,7 +1434,7 @@ void commandLineLogin(const char *_username, const char *password) {
     int res = loginServer(username, password);
     
     if (res == -2) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Wrong password. Press 'm' to go to the main page or 'q' to quit.");
         resetFont();
         while (1) {
@@ -1445,7 +1446,7 @@ void commandLineLogin(const char *_username, const char *password) {
                 // TODO: Here
                 system("clear");//system("@cls||clear");
                 printf("\n");
-                makeBoldRed();
+                makeBoldColor();
                 printStringCentered("Thank you for using CGram!");
                 resetFont();
                 printf("\n\n");
@@ -1453,7 +1454,7 @@ void commandLineLogin(const char *_username, const char *password) {
             }
         }
     } else if (res == -3) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Username does not exist. Press 'm' to go to the main page or 'q' to quit.");
         resetFont();
         while (1) {
@@ -1465,7 +1466,7 @@ void commandLineLogin(const char *_username, const char *password) {
                 // TODO: Here
                 system("clear");//system("@cls||clear");
                 printf("\n");
-                makeBoldRed();
+                makeBoldColor();
                 printStringCentered("Thank you for using CGram!");
                 resetFont();
                 printf("\n\n");
@@ -1475,7 +1476,7 @@ void commandLineLogin(const char *_username, const char *password) {
     }
     
     if (strcmp(token, "-1") == 0 || res == -1) {
-        makeBoldRed();
+        makeBoldColor();
         printStringCentered("Login failed. Press 'm' to go to the main page or 'q' to quit.");
         resetFont();
         while (1) {
@@ -1487,7 +1488,7 @@ void commandLineLogin(const char *_username, const char *password) {
                 // TODO: Here
                 system("clear");//system("@cls||clear");
                 printf("\n");
-                makeBoldRed();
+                makeBoldColor();
                 printStringCentered("Thank you for using CGram!");
                 resetFont();
                 printf("\n\n");
@@ -1501,7 +1502,7 @@ void commandLineLogin(const char *_username, const char *password) {
 
 void commandLineInvalid() {
     printf("\n\n");
-    makeBoldRed();
+    makeBoldColor();
     printStringCentered("Invalid arguments passed to CGram. Use --help to get help.");
     resetFont();
     printf("\n\n");
@@ -1509,12 +1510,12 @@ void commandLineInvalid() {
 
 void commandLineHelp() {
     printf("\n\n");
-    makeBoldRed();
+    makeBoldColor();
     // TODO: Check if 1) should the beginning of Help be capitialized and 2) what CLI stands for and...!
     printStringCentered("CGram CLI Help");
     resetFont();
     printf("\n\n\n");
-    makeRed();
+    makeColor();
     printStringCentered("Open CGram without agrguments to go to the welcome page.");
     printf("\n\n");
     printStringCentered("Pass username and password to login quickly.");
