@@ -675,16 +675,6 @@ void chatPage() {
         } else {
             chatPage();
             return;
-//            makeBoldRed();
-//            printStringCentered("Reloading successful. Press 's' to show new messages.");
-//            resetFont();
-//            while (1) {
-//                char c = getch();
-//                if (c == 's') {
-//                    chatPage();
-//                    return;
-//                }
-//            }
         }
     } else if (strcmp(s, "members\n") == 0) {
         makeBoldColor();
@@ -766,16 +756,6 @@ void chatPage() {
         } else {
             chatPage();
             return;
-//            makeBoldRed();
-//            printStringCentered("Message sent. Press 'r' to return.");
-//            resetFont();
-//            while (1) {
-//                char c = getch();
-//                if (c == 'r') {
-//                    chatPage();
-//                    return;
-//                }
-//            }
         }
     }
 }
@@ -1201,31 +1181,31 @@ void colorChangePage() {
     printf("\n\n");
     printStringCentered("Press the first letter of the given colors to change CGram's color scheme.");
     resetFont();
-    printf("\n\n");
+    printf("\n\n\n");
     printf("");
     appColor = RED;
     makeBoldColor();
-    printStringCentered("Red");
+    printStringCentered("Red - Press 'r'");
     resetFont();
     printf("\n\n");
     appColor = GREEN;
     makeBoldColor();
-    printStringCentered("Green");
+    printStringCentered("Green - Press 'g'");
     resetFont();
     printf("\n\n");
     appColor = YELLOW;
     makeBoldColor();
-    printStringCentered("Yellow");
+    printStringCentered("Yellow - Press 'y'");
     resetFont();
     printf("\n\n");
     appColor = BLUE;
     makeBoldColor();
-    printStringCentered("Blue");
+    printStringCentered("Blue - Press 'b'");
     resetFont();
     printf("\n\n");
     appColor = CYAN;
     makeBoldColor();
-    printStringCentered("Cyan");
+    printStringCentered("Cyan - Press 'c'");
     resetFont();
     printf("\n\n");
     FILE *fptr;
@@ -1520,7 +1500,9 @@ void commandLineHelp() {
     printf("\n\n");
     printStringCentered("Pass username and password to login quickly.");
     printf("\n\n");
-    printStringCentered("Pass 'register' to quickly go to the register form.");
+    printStringCentered("Pass '--register' to quickly go to the register form.");
+    printf("\n\n");
+    printStringCentered("Pass '--color' to quickly change CGram's color scheme.");
     printf("\n\n");
     printStringCentered("Pass --help to see this guide.");
     printf("\n\n\n");
@@ -1555,8 +1537,10 @@ int main (int argc, const char * argv[]) {
         case 2:
             if (strcmp(argv[1], "--help") == 0) {
                 commandLineHelp();
-            } else if (strcmp(argv[1], "register") == 0) {
+            } else if (strcmp(argv[1], "--register") == 0) {
                 registerPage();
+            } else if (strcmp(argv[1], "--color") == 0) {
+                colorChangePage();
             } else {
                 commandLineInvalid();
             }
