@@ -160,12 +160,18 @@ void showCursor() {
     printf("\e[?25h");
 }
 
+enum Colors { RED = 35, GREEN = 32, YELLOW = 33, BLUE = 34, CYAN = 36 } appColor = RED;
+
 void makeBoldRed() {
-    printf("\033[1;35m");
+    char x[100] = {'\0'};
+    sprintf(x, "\033[1;%dm", appColor);
+    printf("%s", x);
 }
 
 void makeRed() {
-    printf("\033[0;35m");
+    char x[100] = {'\0'};
+    sprintf(x, "\033[0;%dm", appColor);
+    printf("%s", x);
 }
 
 void resetFont() {
@@ -1186,6 +1192,96 @@ void loginPage() {
     
 }
 
+void colorChangePage() {
+    // TODO: h
+    system("clear");
+    hideCursor();
+    makeBoldRed();
+    printf("\n\n");
+    printStringCentered("Press the first letter of the given colors to change CGram's color scheme.");
+    resetFont();
+    printf("\n\n");
+    printf("");
+    appColor = RED;
+    makeBoldRed();
+    printStringCentered("Red");
+    resetFont();
+    printf("\n\n");
+    appColor = GREEN;
+    makeBoldRed();
+    printStringCentered("Green");
+    resetFont();
+    printf("\n\n");
+    appColor = YELLOW;
+    makeBoldRed();
+    printStringCentered("Yellow");
+    resetFont();
+    printf("\n\n");
+    appColor = BLUE;
+    makeBoldRed();
+    printStringCentered("Blue");
+    resetFont();
+    printf("\n\n");
+    appColor = CYAN;
+    makeBoldRed();
+    printStringCentered("Cyan");
+    resetFont();
+    printf("\n\n");
+    FILE *fptr;
+    char name[] = "appcolor.txt";
+    fptr = fopen(name, "w");
+    int shouldContinue = 1;
+    while (shouldContinue) {
+        char c = getch();
+        if (c == 'r' || c == 'R') {
+            appColor = RED;
+            if (fptr != NULL) {
+                fprintf(fptr, "r");
+            }
+            fclose(fptr);
+            shouldContinue = 0;
+            welcomePage();
+            return;
+        } else if (c == 'g' || c == 'G') {
+            appColor = GREEN;
+            if (fptr != NULL) {
+                fprintf(fptr, "g");
+            }
+            fclose(fptr);
+            shouldContinue = 0;
+            welcomePage();
+            return;
+        } else if (c == 'y' || c == 'Y') {
+            appColor = YELLOW;
+            if (fptr != NULL) {
+                fprintf(fptr, "y");
+            }
+            fclose(fptr);
+            shouldContinue = 0;
+            welcomePage();
+            return;
+        } else if (c == 'b' || c == 'B') {
+            appColor = BLUE;
+            if (fptr != NULL) {
+                fprintf(fptr, "b");
+            }
+            fclose(fptr);
+            shouldContinue = 0;
+            welcomePage();
+            return;
+        } else if (c == 'c' || c == 'C') {
+            appColor = CYAN;
+            if (fptr != NULL) {
+                fprintf(fptr, "c");
+            }
+            fclose(fptr);
+            shouldContinue = 0;
+            welcomePage();
+            return;
+        }
+    }
+}
+
 void welcomePage() {
     // TODO: h
     system("clear");
@@ -1197,16 +1293,18 @@ void welcomePage() {
     }
     printf("\n\n\n");
     printStringCentered("Welcome to CGram");
-    printf("\n\n");
+    printf("\n\n\n");
     printStringCentered("The most advanced messaging app designed ever in pure C");
-    printf("\n\n\n\n\n");
+    printf("\n\n\n");
     makeRed();
     printStringCentered("Designed and developed by Seyed Parsa Neshaei");
     resetFont();
-    printf("\n\n\n\n\n\n");
+    printf("\n\n\n\n");
     printStringCentered("Press 'l' on your keyboard to log in quickly, or 'q' to exit CGram.");
-    printf("\n\n\n");
+    printf("\n\n");
     printStringCentered("If you don't have an account, just press 'r' to register in a snap!");
+    printf("\n\n");
+    printStringCentered("To adjust CGram's color scheme, press 'c'.");
     printf("\n\n");
     int shouldContinue = 1;
     while (shouldContinue) {
@@ -1247,6 +1345,11 @@ void welcomePage() {
                 shouldContinue = 0;
                 registerPage();
                 break;
+            case 'c':
+            case 'C':
+                shouldContinue = 0;
+                colorChangePage();
+                break;
             default:
                 break;
         }
@@ -1260,6 +1363,42 @@ void initializeAsciiArt() {
     strcpy(asciiArt[2], "\\ \\ \\____  \\ \\ \\__ \\  \\ \\  __<   \\ \\  __ \\  \\ \\ \\-./\\ \\  \n");
     strcpy(asciiArt[3], " \\ \\_____\\  \\ \\_____\\  \\ \\_\\ \\_\\  \\ \\_\\ \\_\\  \\ \\_\\ \\ \\_\\ \n");
     strcpy(asciiArt[4], "  \\/_____/   \\/_____/   \\/_/ /_/   \\/_/\\/_/   \\/_/  \\/_/ \n");
+}
+
+void initializeAppColor() {
+    FILE *fptr;
+    char filename[] = "appcolor.txt";
+    fptr = fopen(filename, "r");
+    if (fptr == NULL) {
+        appColor = RED;
+        return;
+    }
+    char ch = fgetc(fptr);
+    if (ch == EOF) {
+        appColor = RED;
+        return;
+    }
+    switch (ch) {
+        case 'r':
+            appColor = RED;
+            break;
+        case 'g':
+            appColor = GREEN;
+            break;
+        case 'y':
+            appColor = YELLOW;
+            break;
+        case 'b':
+            appColor = BLUE;
+            break;
+        case 'c':
+            appColor = CYAN;
+            break;
+        default:
+            appColor = RED;
+            break;
+    }
+    fclose(fptr);
 }
 
 void setupSocket() {
@@ -1392,14 +1531,20 @@ int main (int argc, const char * argv[]) {
     // Done Feature: Password strength
     
     // IDEA: Activity Indicator
+    // IDEA: App sketches
+    // IDEA: Auto replace emojis
+    // Done Feature: Change app color
+    // Done Feature: Save app color to file
     
     // FEATURE: esc exits app
     
+    // BUG: Uncentered in color chooses screen
     // BUG: Not very good password strength finder!
     
     setupTerminalDimensions();
     atexit(showCursor);
     initializeAsciiArt();
+    initializeAppColor();
     
     switch (argc) {
         case 0:
@@ -1418,6 +1563,7 @@ int main (int argc, const char * argv[]) {
         case 3:
             commandLineLogin(argv[1], argv[2]);
             break;
+     
         default:
             break;
     }
