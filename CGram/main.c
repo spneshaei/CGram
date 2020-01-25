@@ -327,38 +327,106 @@ void chat(int server_socket) {
         n = 0;
         send(server_socket, requestToSend, sizeof(requestToSend), 0);
         bzero(requestToSend, sizeof(requestToSend));
-        recv(server_socket, requestToSend, sizeof(requestToSend), 0);
-        return;
+        
+        char *ptr = requestToSend;
+        size_t len = sizeof(requestToSend);
+        int nread;
+        while ((nread = recv(server_socket, ptr, len, 0)) != 0) {
+            if (nread < 0) {
+                printf("hello recv from server");
+//                exit(1);
+                break;
+            } else {
+                return;
+            }
+            ptr += nread;
+            len -= nread;
+        }
+        
+//        while (strcmp(requestToSend, "") == 0) {
+//            recv(server_socket, requestToSend, sizeof(requestToSend), 0);
+//        }
+        
+        
+//        send(server_socket, requestToSend, sizeof(requestToSend), 0);
+        // thiiiiis
+//        return;
+        
     }
 }
 
+int connected = 0; // TODO: FOR SECOND PHASE
+int client_socket;
+
 void sendRequestToServer(char *request, char *result) {
     strcpy(originalReq, request);
+//    if (!connected) {
+        struct sockaddr_in servaddr;
+        
+        // Create and verify socket
+        client_socket = socket(AF_INET, SOCK_STREAM, 0);
+        
+        // Assign IP and port
+        bzero(&servaddr, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        servaddr.sin_port = htons(PORT);
+        
+        // Connect the client socket to server socket
+        if (connect(client_socket, (SA*)&servaddr, sizeof(servaddr)) != 0) {
+            connected = 1;
+        }
+//    }
     
-    int client_socket;
-    struct sockaddr_in servaddr;
-    
-    // Create and verify socket
-    client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    
-    // Assign IP and port
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    servaddr.sin_port = htons(PORT);
-    
-    // Connect the client socket to server socket
-    if (connect(client_socket, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-    }
     
     // Function for chat
     chat(client_socket);
     
     strcpy(result, requestToSend);
     
+    // TODO: For second phase
     // Close the socket
     shutdown(client_socket, SHUT_RDWR);
 }
+
+//void saveTokenAndUsername() {
+//    strcpy(token, "");
+//    strcpy(username, "");
+//    FILE *fptr;
+//    char name[] = "token.txt";
+//    char secondName[] = "username.txt";
+//    fptr = fopen(name, "w");
+//    if (fptr != NULL) {
+//        fprintf(fptr, "%s\n", token);
+//    }
+//    fclose(fptr);
+//    fptr = fopen(secondName, "w");
+//    if (fptr != NULL) {
+//        fprintf(fptr, "%s\n", username);
+//    }
+//    fclose(fptr);
+//}
+//
+//void loadTokenAndUsername() {
+//    FILE *fptr;
+//    char str[MAX], uStr[MAX];
+//    char filename[] = "token.txt";
+//    fptr = fopen(filename, "r");
+//    if (fptr == NULL) {
+//        return;
+//    }
+//    while (fgets(str, MAX, fptr) != NULL);
+//    strcpy(token, str);
+//    fclose(fptr);
+//    char secondFilename[] = "username.txt";
+//    fptr = fopen(secondFilename, "r");
+//    if (fptr == NULL) {
+//        return;
+//    }
+//    while (fgets(uStr, MAX, fptr) != NULL);
+//    strcpy(username, uStr);
+//    fclose(fptr);
+//}
 
 int loginServer(const char username[], const char password[]) { // returns -3 if wrong username, -2 if wrong password, -1 if neither
     char req[MAX] = {'\0'}, result[MAX];
@@ -549,6 +617,8 @@ int reloadMessagesServer() { // returns -1 if error
          } else if (strcmp(type->valuestring, "List") == 0) {
              const cJSON *content = cJSON_GetObjectItemCaseSensitive(json, "content");
              const cJSON *eachMessage = NULL;
+             int i = 0;
+             messagesCount = 0;
              cJSON_ArrayForEach(eachMessage, content) {
                  const cJSON *eachMessageSender = cJSON_GetObjectItemCaseSensitive(eachMessage, "sender");
                  const cJSON *eachMessageContent = cJSON_GetObjectItemCaseSensitive(eachMessage, "content");
@@ -558,7 +628,8 @@ int reloadMessagesServer() { // returns -1 if error
                      Message m;
                      strcpy(m.sender, eachMessageSender->valuestring);
                      strcpy(m.content, eachMessageContent->valuestring);
-                     messages[messagesCount] = m;
+                     messages[i] = m;
+                     i++;
                      messagesCount++;
                  }
              }
@@ -805,6 +876,7 @@ void mainPage() {
                 } else {
                     shouldContinue = 0;
                     username[0] = '\0';
+                    token[0] = '\0';
                     loginPage();
                     return;
                 }
@@ -1016,6 +1088,9 @@ void registerPage() {
             }
         }
     } else {
+//        strcpy(token, "");
+//        strcpy(username, "");
+//        saveTokenAndUsername();
         makeBoldColor();
         printStringCentered("Registration successful! Press any key to return.");
         resetFont();
@@ -1027,6 +1102,10 @@ void registerPage() {
 }
 
 void loginPage() {
+    if (strcmp(token, "") != 0 && strcmp(token, "-1") != 0) {
+        mainPage();
+        return;
+    }
     char x[100] = {'\0'};
     strcpy(username, x);
     // TODO: h
@@ -1168,6 +1247,7 @@ void loginPage() {
             }
         }
     } else {
+//        saveTokenAndUsername();
         mainPage();
     }
     
@@ -1496,7 +1576,7 @@ void commandLineHelp() {
     resetFont();
     printf("\n\n\n");
     makeColor();
-    printStringCentered("Open CGram without agrguments to go to the welcome page.");
+    printStringCentered("Open CGram without arguments to go to the welcome page.");
     printf("\n\n");
     printStringCentered("Pass username and password to login quickly.");
     printf("\n\n");
@@ -1528,6 +1608,7 @@ int main (int argc, const char * argv[]) {
     atexit(showCursor);
     initializeAsciiArt();
     initializeAppColor();
+//    loadTokenAndUsername();
     
     switch (argc) {
         case 0:
