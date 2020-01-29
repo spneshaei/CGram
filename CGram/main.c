@@ -28,8 +28,7 @@
 #include "cJSON.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
-
-#define MAX 500
+#define MAX 1000000
 #define PORT 12345
 #define SA struct sockaddr
 
@@ -333,7 +332,7 @@ void chat(int server_socket) {
         int nread;
         while ((nread = recv(server_socket, ptr, len, 0)) != 0) {
             if (nread < 0) {
-                printf("hello recv from server");
+                printf("\nSudden Server Disconnection");
 //                exit(1);
                 break;
             } else {
@@ -881,7 +880,7 @@ void mainPage() {
                     return;
                 }
                 // TODO: Possible bug here due to \xff-ing...
-            } else if (strStartsWith("new ", channel) || strStartsWith("\xffnew ", channel)) {
+            } else if (strStartsWith("new ", channel) || strStartsWith("\xffnew ", channel) || strStartsWith("\xff\xffnew ", channel) || strStartsWith("\xff\xff\xffnew ", channel) || strStartsWith("\xff\xff\xff\xffnew ", channel) || strStartsWith("\xff\xff\xff\xff\xffnew ", channel) || strStartsWith("\xff\xff\xff\xff\xff\xffnew ", channel) || strStartsWith("\xff\xff\xff\xff\xff\xff\xffnew ", channel)) {
                 printf("\n\n");
                 char target[10][200];
                 getWords(channel, target);
