@@ -28,7 +28,7 @@
 #include "cJSON.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#define MAX 200000
+#define MAX 20000
 #define PORT 12345
 #define SA struct sockaddr
 
