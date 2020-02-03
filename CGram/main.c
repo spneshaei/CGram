@@ -28,21 +28,21 @@
 #include "cJSON.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#define MAX 1000000
+#define MAX 200000
 #define PORT 12345
 #define SA struct sockaddr
 
 int server_socket;
 
-#define cursorforward(x) printf("\033[%dC", (x))
-#define cursorbackward(x) printf("\033[%dD", (x))
+//#define cursorforward(x) printf("\033[%dC", (x))
+//#define cursorbackward(x) printf("\033[%dD", (x))
 
-#define KEY_ESCAPE  0x001b
-#define KEY_ENTER   0x000a
-#define KEY_UP      0x0105
-#define KEY_DOWN    0x0106
-#define KEY_LEFT    0x0107
-#define KEY_RIGHT   0x0108
+//#define KEY_ESCAPE  0x001b
+//#define KEY_ENTER   0x000a
+//#define KEY_UP      0x0105
+//#define KEY_DOWN    0x0106
+//#define KEY_LEFT    0x0107
+//#define KEY_RIGHT   0x0108
 
 char asciiArt[5][200];
 
@@ -96,6 +96,97 @@ static int getch() {
     return c;
 }
 
+// TODO: Not written in Documentation
+void splitString(char str[1000000], char newString[1000][1000], int *countOfWords) {
+    int j = 0, count = 0;
+    for(int i = 0; i <= strlen(str); i++) {
+        if (str[i] == '\0' || str[i] == ' ' || str[i] == ',' || str[i] == '\n') {
+            newString[count][j] = '\0';
+            count += 1;
+            j = 0;
+        } else {
+            newString[count][j] = str[i];
+            j++;
+        }
+    }
+    *countOfWords = count;
+}
+
+void splitStringByDoubleQuotes(char str[1000000], char newString[1000][1000], int *countOfWords) {
+    int j = 0, count = 0;
+    for(int i = 0; i <= strlen(str); i++) {
+        if (str[i] == '\0' || str[i] == '\"' || str[i] == '\n') {
+            newString[count][j] = '\0';
+            count += 1;
+            j = 0;
+        } else {
+            newString[count][j] = str[i];
+            j++;
+        }
+    }
+    *countOfWords = count;
+}
+
+void findSubstring(char *destination, const char *source, int beg, int n)
+{
+    // extracts n characters from source string starting from beg index
+    // and copy them into the destination string
+    while (n > 0)
+    {
+        *destination = *(source + beg);
+        
+        destination++;
+        source++;
+        n--;
+    }
+    
+    // null terminate destination string
+    *destination = '\0';
+}
+
+// TODO: Find out how it works?? Does it replace words in "s" in-place??
+char *replaceWord(const char *s, const char *oldW,
+                  const char *newW) {
+    char *result;
+    int i, cnt = 0;
+    int newWlen = strlen(newW);
+    int oldWlen = strlen(oldW);
+    
+    // Counting the number of times old word
+    // occur in the string
+    for (i = 0; s[i] != '\0'; i++)
+    {
+        if (strstr(&s[i], oldW) == &s[i])
+        {
+            cnt++;
+            
+            // Jumping to index after the old word.
+            i += oldWlen - 1;
+        }
+    }
+    
+    // Making new string of enough length
+    result = (char *)malloc(i + cnt * (newWlen - oldWlen) + 1);
+    
+    i = 0;
+    while (*s)
+    {
+        // compare the substring with the result
+        if (strstr(s, oldW) == s)
+        {
+            strcpy(&result[i], newW);
+            i += newWlen;
+            s += oldWlen;
+        }
+        else
+            result[i++] = *s++;
+    }
+    
+    result[i] = '\0';
+    return result;
+}
+
+
 int getWords(char *base, char target[10][200]) {
     int n = 0, i, j = 0;
     for (i = 0; ; i++) {
@@ -117,10 +208,10 @@ int strStartsWith(const char *pre, const char *str) {
     return lenstr < lenpre ? 0 : memcmp(pre, str, lenpre) == 0;
 }
 
-void exitCtrlCHandler(int s) {
-    showCursor();
-    exit(1);
-}
+//void exitCtrlCHandler(int s) {
+//    showCursor();
+//    exit(1);
+//}
 
 void setupTerminalDimensions() {
     #ifdef TIOCGSIZE
@@ -136,15 +227,15 @@ void setupTerminalDimensions() {
     #endif
 }
 
-int unicodeStrlen(char *str) {
-    int i = 0, j = 0;
-    while (str[i]) {
-        if ((str[i] & 0xC0) != 0x80)
-            j++;
-        i++;
-    }
-    return j;
-}
+//int unicodeStrlen(char *str) {
+//    int i = 0, j = 0;
+//    while (str[i]) {
+//        if ((str[i] & 0xC0) != 0x80)
+//            j++;
+//        i++;
+//    }
+//    return j;
+//}
 
 void printStringCentered(char *str) {
     int long len = strlen(str);//unicodeStrlen(str);
@@ -293,6 +384,8 @@ void mainPage_printUntilSpecifiedChannel(char *channel) {
     printStringCentered("To create a new channel, type 'new' and then its name after a space.");
     printf("\n\n");
     printStringCentered("To log out from your account, type 'logout'.");
+    printf("\n\n");
+        printStringCentered("To select more quickly, press CTRL+R for logout.");
     printf("\n\n\n");
     resetFont();
     printStringCentered(channel);
@@ -431,6 +524,27 @@ int loginServer(const char username[], const char password[]) { // returns -3 if
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "login %s, %s", username, password);
     sendRequestToServer(req, result);
+    replaceWord(result, "\n", "");
+    replaceWord(result, "\t", "");
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Username is not valid.\"}") == 0) {
+        strcpy(token, "-1");
+        return -3;
+    } else if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Wrong password.\"}") == 0) {
+        strcpy(token, "-1");
+        return -2;
+    } else if (strstr(result, "AuthToken")) {
+        findSubstring(token, result, 31, (int)(strlen(result) - 33));
+        return 0;
+    } else {
+        strcpy(token, "-1");
+        return -1;
+    }
+}
+
+int loginServer_cJSON(const char username[], const char password[]) { // returns -3 if wrong username, -2 if wrong password, -1 if neither
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "login %s, %s", username, password);
+    sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
     if (json == NULL) {
         cJSON_Delete(json);
@@ -481,6 +595,19 @@ int registerServer(char username[], char password[]) { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX] = {'\0'};
     sprintf(req, "register %s, %s", username, password);
     sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"this username is not available.\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int registerServer_cJSON(char username[], char password[]) { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX] = {'\0'};
+    sprintf(req, "register %s, %s", username, password);
+    sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
     if (json == NULL) {
         cJSON_Delete(json);
@@ -499,6 +626,21 @@ int registerServer(char username[], char password[]) { // returns -1 if error
 }
 
 int createChannelServer() { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX] = {'\0'};
+    sprintf(req, "create channel %s, %s", channel, token);
+    sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Channel name is not available.\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Error\",\"content\":\"You are in another channel.\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int createChannelServer_cJSON() { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "create channel %s, %s", channel, token);
     sendRequestToServer(req, result);
@@ -523,6 +665,21 @@ int findChannelServer() { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "join channel %s, %s", channel, token);
     sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"You are in another channel.\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Channel not found.\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int findChannelServer_cJSON() { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "join channel %s, %s", channel, token);
+    sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
     if (json == NULL) {
         cJSON_Delete(json);
@@ -544,6 +701,19 @@ int logoutServer() { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "logout %s", token);
     sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Authentication failed!\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int logoutServer_cJSON() { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "logout %s", token);
+    sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
     if (json == NULL) {
         cJSON_Delete(json);
@@ -561,7 +731,45 @@ int logoutServer() { // returns -1 if error
     return -1;
 }
 
+// TODO: No error handling here
 int reloadMembersServer() { // returns -1 if error
+    for (int i = 0; i < membersCount; i++) {
+        strcpy(members[i].name, "");
+    }
+    membersCount = 0;
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "channel members %s", token);
+    sendRequestToServer(req, result);
+    char line[MAX] = {}, *subString;
+    strcpy(line, result);
+    subString = strtok(line, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    if (subString) {
+        strcpy(members[membersCount].name, subString);
+        membersCount++;
+    } else {
+        return -1;
+    }
+    for (int i = 1; i < MAX; i++) {
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\"");
+        if (subString) {
+            strcpy(members[membersCount].name, subString);
+            membersCount++;
+        } else {
+            break;
+        }
+    }
+    return 1;
+}
+
+int reloadMembersServer_cJSON() { // returns -1 if error
     for (int i = 0; i < membersCount; i++) {
         strcpy(members[i].name, "");
     }
@@ -599,7 +807,148 @@ int reloadMembersServer() { // returns -1 if error
     return -1;
 }
 
+int searchMessageServer(char *word) { // returns -1 if error
+//    char req[MAX] = {'\0'}, result[MAX];
+//    sprintf(req, "searchBetweenMessages %s, %s", word, token);
+//    sendRequestToServer(req, result);
+//    if (strcmp(result, "{\"type\":\"List\",\"content\":[]}") == 0) {
+//        return -1;
+//    }
+//    messagesCount = 0;
+//    char line[MAX] = {}, *subString;
+//    strcpy(line, result);
+//    subString = strtok(line, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    // type, List, content == up to here
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\""); // sender got
+//    if (subString) {
+//        strcpy(messages[messagesCount].sender, subString);
+//    } else {
+//        return 0;
+//    }
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\"");
+//    subString = strtok(NULL, "\""); // content got
+//    if (subString) {
+//        strcpy(messages[messagesCount].content, subString);
+//        messagesCount++;
+//    } else {
+//        return 0;
+//    }
+//    for (int i = 1; i < MAX; i++) {
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\""); // sender got
+//        if (subString) {
+//            strcpy(messages[messagesCount].sender, subString);
+//        } else {
+//            break;
+//        }
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\"");
+//        subString = strtok(NULL, "\""); // content got
+//        if (subString) {
+//            strcpy(messages[messagesCount].content, subString);
+//            messagesCount++;
+//        } else {
+//            break;
+//        }
+//    }
+//    return 0;
+    
+    Message copyMessages[200];
+    for (int i = 0; i < 200; i++) {
+        strcpy(copyMessages[i].sender, messages[i].sender);
+        strcpy(copyMessages[i].content, messages[i].content);
+    }
+    messagesCount = 0;
+    for (int i = 0; i < 200; i++) {
+        char newString[1000][1000];
+        int c = -1;
+        splitString(copyMessages[i].content, newString, &c);
+        if (c < 1) {
+            continue;
+        }
+        for (int j = 0; j < c; j++) {
+            if (strcmp(newString[j], word) == 0) {
+                strcpy(messages[messagesCount].sender, copyMessages[i].sender);
+                strcpy(messages[messagesCount].content, copyMessages[i].content);
+                messagesCount += 1;
+            }
+        }
+    }
+    return 0;
+}
+
+// TODO: No error handling here at all!
 int reloadMessagesServer() { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "refresh %s", token);
+    sendRequestToServer(req, result);
+    messagesCount = 0;
+    char line[MAX] = {}, *subString;
+    strcpy(line, result);
+    subString = strtok(line, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    // type, List, content == up to here
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\""); // sender got
+    if (subString) {
+        strcpy(messages[messagesCount].sender, subString);
+    } else {
+        return 0;
+    }
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\"");
+    subString = strtok(NULL, "\""); // content got
+    if (subString) {
+        strcpy(messages[messagesCount].content, subString);
+        messagesCount++;
+    } else {
+        return 0;
+    }
+    for (int i = 1; i < MAX; i++) {
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\""); // sender got
+        if (subString) {
+            strcpy(messages[messagesCount].sender, subString);
+        } else {
+            break;
+        }
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\"");
+        subString = strtok(NULL, "\""); // content got
+        if (subString) {
+            strcpy(messages[messagesCount].content, subString);
+            messagesCount++;
+        } else {
+            break;
+        }
+    }
+    return 0;
+}
+
+int reloadMessagesServer_cJSON() { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "refresh %s", token);
     sendRequestToServer(req, result);
@@ -649,6 +998,21 @@ int sendMessageServer(char message[]) { // returns -1 if error
     }
     sprintf(req, "send %s, %s", message, token);
     sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int sendMessageServer_cJSON(char message[]) { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    unsigned long len = strlen(message);
+    if (message[len - 1] == '\n') {
+        message[len - 1] = '\0';
+    }
+    sprintf(req, "send %s, %s", message, token);
+    sendRequestToServer(req, result);
     cJSON *json = cJSON_Parse(result);
     if (json == NULL) {
         cJSON_Delete(json);
@@ -666,7 +1030,33 @@ int sendMessageServer(char message[]) { // returns -1 if error
     return -1;
 }
 
+int searchMemberServer(char *memberName) { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "searchBetweenMembers %s, %s", memberName, token);
+    sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"Error\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
 int leaveChannelServer() { // returns -1 if error
+    char req[MAX] = {'\0'}, result[MAX];
+    sprintf(req, "leave %s", token);
+    sendRequestToServer(req, result);
+    if (strcmp(result, "{\"type\":\"Error\",\"content\":\"You aren\'t in any channel\"}") == 0) {
+        return -1;
+    } else if (strcmp(result, "{\"type\":\"Successful\",\"content\":\"\"}") == 0) {
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
+int leaveChannelServer_cJSON() { // returns -1 if error
     char req[MAX] = {'\0'}, result[MAX];
     sprintf(req, "leave %s", token);
     sendRequestToServer(req, result);
@@ -703,11 +1093,15 @@ void chatPage() {
     printf("\n");
     printStringCentered("Type a new message and press enter to send it.");
     printf("\n");
-    printStringCentered("To receive the latest messages, type 'reload'.");
+    printStringCentered("To see messages including a certain word, type 'find'.");
+    printf("\n");
+    printStringCentered("To see all messages again, simply type 'reload'.");
     printf("\n");
     printStringCentered("To see the name of other members of this channel, type 'members'.");
     printf("\n");
-    printStringCentered("To leave this channel, type 'leave'.");
+    printStringCentered("To search the channel for a member, type 'search_member'.");
+    printf("\n");
+    printStringCentered("To leave this channel, type 'leave'");
     resetFont();
     printf("\n\n");
     for (int i = 0; i < messagesCount; i++) {
@@ -725,7 +1119,90 @@ void chatPage() {
     fgets(s, 200, stdin);
     printf("\n\n");
     hideCursor();
-    if (strcmp(s, "reload\n") == 0) {
+    if (strcmp(s, "") == 0 || strcmp(s, "\n") == 0) {
+        chatPage();
+        return;
+    } else if (strcmp(s, "find\n") == 0) {
+        printf("\nEnter the word to search for ==> ");
+        char word[200] = {};
+        scanf("%s", word);
+        printf("\n\n");
+        int result = searchMessageServer(word);
+        if (result == -1) {
+            makeBoldColor();
+            printStringCentered("No message found. Press 'r' or CTRL+R to return.");
+            resetFont();
+            while (1) {
+                char c = getch();
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
+                    chatPage();
+                    return;
+                }
+            }
+        } else {
+            chatPage();
+            return;
+        }
+    } else if (strcmp(s, "search_member\n") == 0) {
+        printf("\nEnter the name of the member to search for ==> ");
+        char memberName[200] = {};
+        scanf("%s", memberName);
+        printf("\n\n");
+        int result = searchMemberServer(memberName);
+        if (result == -1) {
+            makeBoldColor();
+            printStringCentered("No such user found. Press 'r' or CTRL+R to return.");
+            resetFont();
+            while (1) {
+                char c = getch();
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
+                    chatPage();
+                    return;
+                }
+            }
+        } else {
+            makeBoldColor();
+            printStringCentered("User is a member of this channel. Press 'r' or CTRL+R to return.");
+            resetFont();
+            while (1) {
+                char c = getch();
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
+                    chatPage();
+                    return;
+                }
+            }
+        }
+    } else if (strcmp(s, "reload\n") == 0) {
         makeBoldColor();
         printStringCentered("Reloading the messages...");
         resetFont();
@@ -733,11 +1210,21 @@ void chatPage() {
         int result = reloadMessagesServer();
         if (result == -1) {
             makeBoldColor();
-            printStringCentered("Reloading failed. Press 'r' to return.");
+            printStringCentered("Reloading failed. Press 'r' or CTRL+R to return.");
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r' || c == 'R') {
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -754,11 +1241,21 @@ void chatPage() {
         int result = reloadMembersServer();
         if (result == -1) {
             makeBoldColor();
-            printStringCentered("Finding failed. Press 'r' to return.");
+            printStringCentered("Finding failed. Press 'r' or CTRL+R to return.");
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r' || c == 'R') {
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -774,11 +1271,21 @@ void chatPage() {
             }
             printf("\n\n");
             makeBoldColor();
-            printStringCentered("Press 'r' to return.");
+            printStringCentered("Press 'r' or CTRL+R to return.");
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r' || c == 'R') {
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -792,11 +1299,21 @@ void chatPage() {
         int result = leaveChannelServer();
         if (result == -1) {
             makeBoldColor();
-            printStringCentered("Leaving failed. Press 'r' to return.");
+            printStringCentered("Leaving failed. Press 'r' or CTRL+R to return.");
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r' || c == 'R') {
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -814,11 +1331,21 @@ void chatPage() {
         int result2 = reloadMessagesServer();
         if (result1 == -1 || result2 == -1) {
             makeBoldColor();
-            printStringCentered("Sending failed. Press 'r' to return.");
+            printStringCentered("Sending failed. Press 'r' or CTRL+R to return.");
             resetFont();
             while (1) {
                 char c = getch();
-                if (c == 'r' || c == 'R') {
+                if (c == 18) {
+//                    getch();
+//                    switch (getch()) {
+//                        case 'A':
+                            chatPage();
+                            return;
+//                            break;
+//                        default:
+//                            break;
+//                    }
+                } else if (c == 'r' || c == 'R') {
                     chatPage();
                     return;
                 }
@@ -848,12 +1375,49 @@ void mainPage() {
     printStringCentered("To create a new channel, type 'new' and then its name after a space.");
     printf("\n\n");
     printStringCentered("To log out from your account, type 'logout'.");
+    printf("\n\n");
+    printStringCentered("To select more quickly, press CTRL+R for logout.");
     printf("\n\n\n");
     resetFont();
     int shouldContinue = 1;
     while (shouldContinue) {
         char c = getch();
-        if (c == '\n') {
+        if (c == 18) {
+                        printf("\n\n");
+                        makeBoldColor();
+                        printStringCentered("Logging out...");
+                        resetFont();
+                        printf("\n\n");
+                        int res = logoutServer();
+                        if (res == -1) {
+                            makeBoldColor();
+                            printStringCentered("Logout failed. Press 't' or CTRL+R to retry.");
+                            resetFont();
+                            while (1) {
+                                char c = getch();
+                                if (c == 18) {
+//                                    getch();
+//                                    switch (getch()) {
+//                                        case 'A':
+                                            chatPage();
+                                            return;
+//                                            break;
+//                                        default:
+//                                            break;
+//                                    }
+                                } else if (c == 't' || c == 'T') {
+                                    mainPage();
+                                    return;
+                                }
+                            }
+                        } else {
+                            shouldContinue = 0;
+                            username[0] = '\0';
+                            token[0] = '\0';
+                            loginPage();
+                            return;
+                        }
+        } else if (c == '\n') {
             if (strcmp(channel, "logout") == 0) {
                 printf("\n\n");
                 makeBoldColor();
@@ -863,11 +1427,21 @@ void mainPage() {
                 int res = logoutServer();
                 if (res == -1) {
                     makeBoldColor();
-                    printStringCentered("Logout failed. Press 't' to retry.");
+                    printStringCentered("Logout failed. Press 't' or CTRL+R to retry.");
                     resetFont();
                     while (1) {
                         char c = getch();
-                        if (c == 't' || c == 'T') {
+                        if (c == 18) {
+//                            getch();
+//                            switch (getch()) {
+//                                case 'A':
+                                    chatPage();
+                                    return;
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+                        } else if (c == 't' || c == 'T') {
                             mainPage();
                             return;
                         }
@@ -904,11 +1478,21 @@ void mainPage() {
                 
                 if (result1 == -1 || result3 == -1) {
                     makeBoldColor();
-                    printStringCentered("Channel name exists. Press 't' to retry.");
+                    printStringCentered("Channel name exists. Press 't' or CTRL+R to retry.");
                     resetFont();
                     while (1) {
                         char c = getch();
-                        if (c == 't' || c == 'T') {
+                        if (c == 18) {
+//                            getch();
+//                            switch (getch()) {
+//                                case 'A':
+                                    chatPage();
+//                                    return;
+//                                    break;
+//                                default:
+//                                    break;
+//                            }
+                        } else if (c == 't' || c == 'T') {
                             mainPage();
                             return;
                         }
@@ -954,11 +1538,21 @@ void mainPage() {
     
     if (result1 == -1 || result2 == -1) {
         makeBoldColor();
-        printStringCentered("The channel doesn't exist. Press 't' to retry.");
+        printStringCentered("The channel doesn't exist. Press 't' or CTRL+R to retry.");
         resetFont();
         while (1) {
             char c = getch();
-            if (c == 't' || c == 'T') {
+            if (c == 18) {
+//                getch();
+//                switch (getch()) {
+//                    case 'A':
+                        chatPage();
+                        return;
+//                        break;
+//                    default:
+//                        break;
+//                }
+            } else if (c == 't' || c == 'T') {
                 mainPage();
                 return;
             }
