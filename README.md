@@ -16,7 +16,7 @@ And then run the output:
 ./a.out
 ```
 
-> **Caution:** To run CGram successfully, you should first run the app located in the https://github.com/spneshaei/CGram-Server repository.
+**Caution:** To run CGram successfully, you should first run the app located in the https://github.com/spneshaei/CGram-Server repository.
 
 ## Documentation
 
